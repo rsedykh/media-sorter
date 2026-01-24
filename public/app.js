@@ -476,22 +476,26 @@ document.addEventListener('keydown', (e) => {
       shortcutAutoscroll.classList.toggle('active', autoScrollMode);
       videoPlayer.loop = !autoScrollMode;
       break;
-    case '1':
+    case 'q':
+    case 'Q':
       e.preventDefault();
       filterUnsorted.checked = !filterUnsorted.checked;
       applyFilters();
       break;
-    case '2':
+    case 'w':
+    case 'W':
       e.preventDefault();
       filterLiked.checked = !filterLiked.checked;
       applyFilters();
       break;
-    case '3':
+    case 'e':
+    case 'E':
       e.preventDefault();
       filterDisliked.checked = !filterDisliked.checked;
       applyFilters();
       break;
-    case '4':
+    case 'r':
+    case 'R':
       e.preventDefault();
       filterSuper.checked = !filterSuper.checked;
       applyFilters();
