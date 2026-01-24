@@ -293,16 +293,6 @@ async function moveVideo(video, targetHandle, newStatus) {
   }
 }
 
-// Get folder handle from status
-function getHandleForStatus(status) {
-  switch (status) {
-    case 'liked': return likedHandle;
-    case 'disliked': return dislikedHandle;
-    case 'super': return superHandle;
-    default: return rootHandle;
-  }
-}
-
 // Like current video
 async function likeVideo() {
   if (filteredVideos.length === 0) return;

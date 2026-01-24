@@ -130,10 +130,6 @@ h1 {
   font-size: 14px;
 }
 
-.filters input[type="checkbox"] {
-  cursor: pointer;
-}
-
 .video-container {
   position: relative;
   background: #000;
