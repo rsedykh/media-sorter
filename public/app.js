@@ -14,6 +14,7 @@ let currentIndex = 0;
 let quickPreviewMode = true;
 let halfSpeedMode = false;
 let autoScrollMode = false;
+let lastAction = null; // { video, previousStatus, previousParentHandle }
 
 // DOM elements
 const pickerScreen = document.getElementById('picker-screen');
@@ -261,16 +262,30 @@ async function moveVideo(video, targetHandle, newStatus) {
   }
 }
 
+// Get folder handle from status
+function getHandleForStatus(status) {
+  switch (status) {
+    case 'liked': return likedHandle;
+    case 'disliked': return dislikedHandle;
+    case 'super': return superHandle;
+    default: return rootHandle;
+  }
+}
+
 // Like current video
 async function likeVideo() {
   if (filteredVideos.length === 0) return;
   const video = filteredVideos[currentIndex];
   if (video.status === 'liked') return;
 
+  const previousStatus = video.status;
+  const previousParentHandle = video.parentHandle;
+
   showFeedback('liked');
   const success = await moveVideo(video, likedHandle, 'liked');
 
   if (success) {
+    lastAction = { video, previousStatus, previousParentHandle };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
     if (nextUnsortedIndex !== -1) {
@@ -288,10 +303,14 @@ async function dislikeVideo() {
   const video = filteredVideos[currentIndex];
   if (video.status === 'disliked') return;
 
+  const previousStatus = video.status;
+  const previousParentHandle = video.parentHandle;
+
   showFeedback('disliked');
   const success = await moveVideo(video, dislikedHandle, 'disliked');
 
   if (success) {
+    lastAction = { video, previousStatus, previousParentHandle };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
     if (nextUnsortedIndex !== -1) {
@@ -309,10 +328,14 @@ async function superLikeVideo() {
   const video = filteredVideos[currentIndex];
   if (video.status === 'super') return;
 
+  const previousStatus = video.status;
+  const previousParentHandle = video.parentHandle;
+
   showFeedback('super');
   const success = await moveVideo(video, superHandle, 'super');
 
   if (success) {
+    lastAction = { video, previousStatus, previousParentHandle };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
     if (nextUnsortedIndex !== -1) {
@@ -324,16 +347,30 @@ async function superLikeVideo() {
   }
 }
 
-// Undo - move back to root and switch to that video
+// Undo - restore last moved video to its previous state and navigate to it
 async function undoVideo() {
-  if (filteredVideos.length === 0) return;
-  const video = filteredVideos[currentIndex];
-  if (video.status === 'unsorted') return;
+  if (!lastAction) return;
 
+  const { video, previousStatus, previousParentHandle } = lastAction;
   const videoName = video.name;
-  const success = await moveVideo(video, rootHandle, 'unsorted');
+
+  const success = await moveVideo(video, previousParentHandle, previousStatus);
   if (success) {
+    lastAction = null;
+
+    // Enable the filter for the previous status so we can see the video
+    const filterCheckbox = {
+      'unsorted': filterUnsorted,
+      'liked': filterLiked,
+      'disliked': filterDisliked,
+      'super': filterSuper
+    }[previousStatus];
+    if (filterCheckbox && !filterCheckbox.checked) {
+      filterCheckbox.checked = true;
+    }
+
     applyFilters();
+
     // Find and switch to the undone video
     const newIndex = filteredVideos.findIndex(v => v.name === videoName);
     if (newIndex !== -1) {
