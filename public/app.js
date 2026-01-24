@@ -14,7 +14,7 @@ let currentIndex = 0;
 let quickPreviewMode = true;
 let halfSpeedMode = false;
 let autoScrollMode = false;
-let lastAction = null; // { video, previousStatus, previousParentHandle }
+let lastAction = null; // { video, previousStatus, previousParentHandle, previousSubfolder }
 
 // DOM elements
 const pickerScreen = document.getElementById('picker-screen');
@@ -117,15 +117,36 @@ async function loadVideos() {
     }
   }
 
-  // Load liked videos
+  // Load liked videos from main liked/ folder
   for await (const entry of likedHandle.values()) {
     if (entry.kind === 'file' && entry.name.toLowerCase().endsWith(VIDEO_EXTENSION)) {
       allVideos.push({
         name: entry.name,
         handle: entry,
         status: 'liked',
-        parentHandle: likedHandle
+        parentHandle: likedHandle,
+        likedSubfolder: null
       });
+    }
+  }
+
+  // Load liked videos from numbered subfolders (1-9)
+  for (let n = 1; n <= 9; n++) {
+    try {
+      const subfolderHandle = await likedHandle.getDirectoryHandle(String(n));
+      for await (const entry of subfolderHandle.values()) {
+        if (entry.kind === 'file' && entry.name.toLowerCase().endsWith(VIDEO_EXTENSION)) {
+          allVideos.push({
+            name: entry.name,
+            handle: entry,
+            status: 'liked',
+            parentHandle: subfolderHandle,
+            likedSubfolder: n
+          });
+        }
+      }
+    } catch (err) {
+      // Subfolder doesn't exist, skip it
     }
   }
 
@@ -208,15 +229,30 @@ async function updateDisplay() {
   }
 
   counter.textContent = `${currentIndex + 1} of ${filteredVideos.length}`;
-  status.textContent = video.status;
+
+  // Show subfolder in status if applicable
+  if (video.status === 'liked' && video.likedSubfolder) {
+    status.textContent = `liked/${video.likedSubfolder}`;
+  } else {
+    status.textContent = video.status;
+  }
   status.className = `status ${video.status}`;
 }
 
 // Show visual feedback
 function showFeedback(type) {
   const symbols = { liked: '♥', disliked: '✗', super: '★' };
-  feedback.textContent = symbols[type] || '♥';
-  feedback.className = `feedback ${type} show`;
+
+  // Handle liked subfolders (e.g., 'liked/3')
+  if (type.startsWith('liked/')) {
+    const subfolderNum = type.split('/')[1];
+    feedback.textContent = `♥${subfolderNum}`;
+    feedback.className = 'feedback liked show';
+  } else {
+    feedback.textContent = symbols[type] || '♥';
+    feedback.className = `feedback ${type} show`;
+  }
+
   setTimeout(() => {
     feedback.className = 'feedback';
   }, FEEDBACK_DURATION_MS);
@@ -280,12 +316,14 @@ async function likeVideo() {
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
+  const previousSubfolder = video.likedSubfolder;
 
   showFeedback('liked');
   const success = await moveVideo(video, likedHandle, 'liked');
 
   if (success) {
-    lastAction = { video, previousStatus, previousParentHandle };
+    video.likedSubfolder = null;
+    lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
     if (nextUnsortedIndex !== -1) {
@@ -305,12 +343,14 @@ async function dislikeVideo() {
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
+  const previousSubfolder = video.likedSubfolder;
 
   showFeedback('disliked');
   const success = await moveVideo(video, dislikedHandle, 'disliked');
 
   if (success) {
-    lastAction = { video, previousStatus, previousParentHandle };
+    video.likedSubfolder = null;
+    lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
     if (nextUnsortedIndex !== -1) {
@@ -330,12 +370,14 @@ async function superLikeVideo() {
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
+  const previousSubfolder = video.likedSubfolder;
 
   showFeedback('super');
   const success = await moveVideo(video, superHandle, 'super');
 
   if (success) {
-    lastAction = { video, previousStatus, previousParentHandle };
+    video.likedSubfolder = null;
+    lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
     if (nextUnsortedIndex !== -1) {
@@ -347,15 +389,57 @@ async function superLikeVideo() {
   }
 }
 
+// Move liked video to a numbered subfolder (1-9) or back to parent liked/ (0)
+async function moveToLikedSubfolder(n) {
+  if (filteredVideos.length === 0) return;
+  const video = filteredVideos[currentIndex];
+
+  // Only works on liked videos
+  if (video.status !== 'liked') return;
+
+  // Prevent no-op moves
+  if (n === 0 && video.likedSubfolder === null) return;
+  if (n > 0 && video.likedSubfolder === n) return;
+
+  // Save state for undo
+  const previousSubfolder = video.likedSubfolder;
+  const previousParentHandle = video.parentHandle;
+
+  // Get target folder handle
+  let targetHandle;
+  if (n === 0) {
+    targetHandle = likedHandle;
+  } else {
+    // Create subfolder if needed
+    targetHandle = await likedHandle.getDirectoryHandle(String(n), { create: true });
+  }
+
+  // Show feedback
+  showFeedback(n === 0 ? 'liked' : `liked/${n}`);
+
+  // Move the video (status stays 'liked')
+  const success = await moveVideo(video, targetHandle, 'liked');
+  if (success) {
+    video.likedSubfolder = (n === 0) ? null : n;
+    lastAction = { video, previousStatus: 'liked', previousParentHandle, previousSubfolder };
+    nextVideo();
+  }
+}
+
 // Undo - restore last moved video to its previous state and navigate to it
 async function undoVideo() {
   if (!lastAction) return;
 
-  const { video, previousStatus, previousParentHandle } = lastAction;
+  const { video, previousStatus, previousParentHandle, previousSubfolder } = lastAction;
   const videoName = video.name;
 
   const success = await moveVideo(video, previousParentHandle, previousStatus);
   if (success) {
+    // Restore subfolder state for liked videos
+    if (previousStatus === 'liked') {
+      video.likedSubfolder = previousSubfolder;
+    }
+
     lastAction = null;
 
     // Enable the filter for the previous status so we can see the video
@@ -476,29 +560,45 @@ document.addEventListener('keydown', (e) => {
       shortcutAutoscroll.classList.toggle('active', autoScrollMode);
       videoPlayer.loop = !autoScrollMode;
       break;
-    case 'q':
-    case 'Q':
+    case 'a':
+    case 'A':
       e.preventDefault();
       filterUnsorted.checked = !filterUnsorted.checked;
       applyFilters();
       break;
-    case 'w':
-    case 'W':
+    case 's':
+    case 'S':
       e.preventDefault();
       filterLiked.checked = !filterLiked.checked;
       applyFilters();
       break;
-    case 'e':
-    case 'E':
+    case 'd':
+    case 'D':
       e.preventDefault();
       filterDisliked.checked = !filterDisliked.checked;
       applyFilters();
       break;
-    case 'r':
-    case 'R':
+    case 'f':
+    case 'F':
       e.preventDefault();
       filterSuper.checked = !filterSuper.checked;
       applyFilters();
+      break;
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      e.preventDefault();
+      moveToLikedSubfolder(parseInt(e.key));
+      break;
+    case '0':
+      e.preventDefault();
+      moveToLikedSubfolder(0);
       break;
   }
 });
