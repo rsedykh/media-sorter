@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Sorter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Folder picker screen -->
+    <div id="picker-screen" class="picker-screen">
+      <div class="picker-content">
+        <h1>Video Sorter</h1>
+        <p>Select a folder containing MP4 videos to sort</p>
+        <button id="pick-folder" class="pick-button">Choose Folder</button>
+        <div id="drop-zone" class="drop-zone">
+          <span>or drag & drop a folder here</span>
+        </div>
+        <p class="note">Works in Chrome, Edge, and Opera</p>
+      </div>
+    </div>
+
+    <!-- Main app screen -->
+    <div id="app-screen" class="app-screen hidden">
+      <div class="header">
+        <div class="header-left">
+          <h1>Video Sorter</h1>
+          <span id="folder-name" class="folder-name"></span>
+        </div>
+        <div class="filters">
+          <label><input type="checkbox" id="filter-unsorted" checked> Unsorted</label>
+          <label><input type="checkbox" id="filter-liked"> Liked</label>
+          <label><input type="checkbox" id="filter-disliked"> Disliked</label>
+          <label><input type="checkbox" id="filter-super"> Super</label>
+        </div>
+      </div>
+
+      <div class="video-container">
+        <video id="video-player" autoplay loop muted playsinline>
+        </video>
+        <div id="feedback" class="feedback"></div>
+        <div id="no-videos" class="no-videos hidden">
+          <p>No videos match current filters</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="counter" id="counter">0 of 0</div>
+        <div class="status" id="status"></div>
+      </div>
+
+      <div class="shortcuts">
+        <span><kbd>M</kbd> Sound <span id="sound-status"></span></span>
+        <span><kbd>,</kbd> Auto-scroll <span id="autoscroll-status"></span></span>
+        <span><kbd>.</kbd> 2x speed <span id="quick-preview-status">(ON)</span></span>
+        <span><kbd>/</kbd> Hold for 2x</span>
+        <span><kbd>&uarr;</kbd> Like</span>
+        <span><kbd>'</kbd> Super like</span>
+        <span><kbd>&darr;</kbd> Dislike</span>
+        <span><kbd>U</kbd> Undo</span>
+        <span><kbd>&larr;</kbd> Previous</span>
+        <span><kbd>&rarr;</kbd> Next</span>
+      </div>
+
+      <button id="change-folder" class="change-folder">Change Folder</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

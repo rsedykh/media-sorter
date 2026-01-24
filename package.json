@@ -1,0 +1,13 @@
+{
+  "name": "video-sorter",
+  "version": "1.0.0",
+  "description": "Sort MP4 videos into liked/disliked folders using keyboard controls",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+
