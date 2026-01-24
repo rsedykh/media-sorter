@@ -5,10 +5,12 @@
 The Video Sorter app is fully functional. Users can:
 1. Select a folder via button, drag-and-drop, or clicking folder name to change
 2. Sort videos into liked/disliked/super folders using keyboard
-3. Filter which categories to display (Q/W/E/R keys)
-4. Control playback speed (0.5x, 1x, 2x) and sound
-5. Use auto-scroll for hands-free viewing
-6. Pause/resume video playback
+3. Sub-sort liked videos into numbered subfolders (liked/1-9/) using 1-9 keys
+4. Filter which category to display (A/S/D/F keys - single selection)
+5. Control playback speed (0.5x, 1x, 2x) and sound
+6. Use auto-scroll for hands-free viewing
+7. Pause/resume video playback
+8. Take screenshots of current video frame
 
 ## Keyboard Controls
 
@@ -25,10 +27,13 @@ The Video Sorter app is fully functional. Users can:
 | `,` | Toggle 0.5x speed |
 | `.` | Toggle 2x speed (on by default) |
 | `/` | Toggle pause |
-| `Q` | Toggle Unsorted filter |
-| `W` | Toggle Liked filter |
-| `E` | Toggle Disliked filter |
-| `R` | Toggle Super filter |
+| `A` | Show Unsorted videos |
+| `S` | Show Liked videos |
+| `D` | Show Disliked videos |
+| `F` | Show Super videos |
+| `1-9` | Move liked video to subfolder liked/1-9/ |
+| `0` | Move liked video back to liked/ |
+| `?` | Screenshot current frame (saved to video's folder) |
 
 ## Code Structure
 
@@ -39,22 +44,24 @@ The Video Sorter app is fully functional. Users can:
 let quickPreviewMode = true;   // 2x speed on by default
 let halfSpeedMode = false;     // 0.5x speed mode
 let autoScrollMode = false;    // Auto-advance when video ends
-let lastAction = null;         // { video, previousStatus, previousParentHandle } for undo
+let lastAction = null;         // { video, previousStatus, previousParentHandle, previousSubfolder } for undo
 let rootHandle, likedHandle, dislikedHandle, superHandle;  // Folder handles
-let allVideos = [];            // All loaded videos with status
-let filteredVideos = [];       // Videos matching current filters
+let allVideos = [];            // All loaded videos with status and likedSubfolder
+let filteredVideos = [];       // Videos matching current filter (single selection)
 let currentIndex = 0;          // Current video position
 ```
 
 ### Key Functions
 
 - `initializeFolder(handle)` - Sets up folder handles, creates subfolders
-- `loadVideos()` - Scans all folders for .mp4 files
-- `applyFilters()` - Filters videos based on checkbox state
-- `updateDisplay()` - Loads and plays current video
+- `loadVideos()` - Scans all folders for .mp4 files (including liked/1-9 subfolders)
+- `applyFilters()` - Filters videos based on selected radio button
+- `updateDisplay()` - Loads and plays current video, shows subfolder in status
 - `moveVideo(video, targetHandle, newStatus)` - Moves file between folders
 - `likeVideo()`, `dislikeVideo()`, `superLikeVideo()` - Sort actions (work on any status)
-- `undoVideo()` - Restores last moved video to its previous state
+- `moveToLikedSubfolder(n)` - Move liked video to subfolder (1-9) or back to liked/ (0)
+- `undoVideo()` - Restores last moved video to its previous state (including subfolder)
+- `takeScreenshot()` - Captures current frame and saves as PNG to video's folder
 - `getHandleForStatus(status)` - Helper to get folder handle from status name
 
 ### CSS Classes
@@ -68,11 +75,14 @@ let currentIndex = 0;          // Current video position
 ## Key Behaviors
 
 1. **Like/Dislike/Super** - All work on any video status, not just unsorted
-2. **Undo** - Restores video to its *previous* state (not always unsorted), enables filter if needed, navigates to video
-3. **Auto-scroll** - Disables loop, advances on video end
-4. **Speed modes** - 0.5x and 2x are mutually exclusive
-5. **Active indicators** - Toggle options turn blue when active (no "(ON)" text)
-6. **Change folder** - Click on folder name in header (underlined)
+2. **Liked subfolders** - Press 1-9 on liked videos to move to liked/1-9/, press 0 to move back
+3. **Filters** - Radio buttons (single selection), A/S/D/F select filter directly
+4. **Undo** - Restores video to its *previous* state (including subfolder), switches filter, navigates to video
+5. **Auto-scroll** - Disables loop, advances on video end
+6. **Speed modes** - 0.5x and 2x are mutually exclusive
+7. **Active indicators** - Toggle options turn blue when active (no "(ON)" text)
+8. **Change folder** - Click on folder name in header (underlined)
+9. **Screenshot** - Press ? to save current frame as {videoname}_screenshot.png
 
 ## UI Layout
 
@@ -98,16 +108,18 @@ let currentIndex = 0;          // Current video position
 - [ ] Folder picker works (button and drag-drop)
 - [ ] Click folder name to change folder
 - [ ] Videos load and autoplay at 2x speed
-- [ ] All keyboard shortcuts work (including Q/W/E/R filters)
+- [ ] All keyboard shortcuts work (including A/S/D/F filters)
 - [ ] Files move to correct folders
 - [ ] Like/dislike work on videos of any status
-- [ ] Undo restores to previous state (not just unsorted)
-- [ ] Filters show/hide correct videos
+- [ ] Liked subfolder sorting (1-9, 0) works
+- [ ] Undo restores to previous state (including subfolder)
+- [ ] Filters show correct videos (single selection)
 - [ ] Auto-scroll advances when video ends
 - [ ] Pause toggle works
 - [ ] 0.5x and 2x speed modes are mutually exclusive
 - [ ] Sound toggle works
 - [ ] Active toggles highlight in blue
+- [ ] Screenshot saves PNG to video's folder
 
 ## Dependencies
 

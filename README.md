@@ -47,18 +47,30 @@ Open http://localhost:3000 in your browser.
 | `←` | Previous video |
 | `→` | Next video |
 
-### Filters
+### Filters (single selection)
 | Key | Action |
 |-----|--------|
-| `Q` | Toggle Unsorted filter |
-| `W` | Toggle Liked filter |
-| `E` | Toggle Disliked filter |
-| `R` | Toggle Super filter |
+| `A` | Show Unsorted videos |
+| `S` | Show Liked videos |
+| `D` | Show Disliked videos |
+| `F` | Show Super videos |
+
+### Liked Subfolders
+| Key | Action |
+|-----|--------|
+| `1-9` | Move liked video to subfolder liked/1-9/ |
+| `0` | Move liked video back to liked/ |
+
+### Other
+| Key | Action |
+|-----|--------|
+| `?` | Screenshot current frame |
 
 ## Features
 
 - Videos autoplay and loop
-- Filter checkboxes to show unsorted/liked/disliked/super videos
+- Filter by category (unsorted/liked/disliked/super)
+- Sub-sort liked videos into numbered subfolders (1-9)
 - Visual feedback when sorting (♥ like, ✗ dislike, ★ super)
 - Auto-advances to next unsorted video after sorting
 - Counter showing current position
@@ -67,6 +79,7 @@ Open http://localhost:3000 in your browser.
 - Auto-scroll mode for hands-free viewing
 - Like/dislike/super work on videos of any status
 - Undo restores video to previous state
+- Screenshot current frame to video's folder
 
 ## Browser Support
 
