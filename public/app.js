@@ -182,14 +182,9 @@ async function loadVideos() {
 
 // Apply filters
 function applyFilters() {
-  const activeFilters = {
-    unsorted: filterUnsorted.checked,
-    liked: filterLiked.checked,
-    disliked: filterDisliked.checked,
-    super: filterSuper.checked
-  };
+  const selectedFilter = document.querySelector('input[name="filter"]:checked').value;
 
-  filteredVideos = allVideos.filter(v => activeFilters[v.status]);
+  filteredVideos = allVideos.filter(v => v.status === selectedFilter);
 
   if (currentIndex >= filteredVideos.length) {
     currentIndex = Math.max(0, filteredVideos.length - 1);
@@ -442,15 +437,15 @@ async function undoVideo() {
 
     lastAction = null;
 
-    // Enable the filter for the previous status so we can see the video
-    const filterCheckbox = {
+    // Switch to the filter for the previous status so we can see the video
+    const filterRadio = {
       'unsorted': filterUnsorted,
       'liked': filterLiked,
       'disliked': filterDisliked,
       'super': filterSuper
     }[previousStatus];
-    if (filterCheckbox && !filterCheckbox.checked) {
-      filterCheckbox.checked = true;
+    if (filterRadio) {
+      filterRadio.checked = true;
     }
 
     applyFilters();
@@ -563,25 +558,25 @@ document.addEventListener('keydown', (e) => {
     case 'a':
     case 'A':
       e.preventDefault();
-      filterUnsorted.checked = !filterUnsorted.checked;
+      filterUnsorted.checked = true;
       applyFilters();
       break;
     case 's':
     case 'S':
       e.preventDefault();
-      filterLiked.checked = !filterLiked.checked;
+      filterLiked.checked = true;
       applyFilters();
       break;
     case 'd':
     case 'D':
       e.preventDefault();
-      filterDisliked.checked = !filterDisliked.checked;
+      filterDisliked.checked = true;
       applyFilters();
       break;
     case 'f':
     case 'F':
       e.preventDefault();
-      filterSuper.checked = !filterSuper.checked;
+      filterSuper.checked = true;
       applyFilters();
       break;
     case '1':
