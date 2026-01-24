@@ -57,6 +57,7 @@ Video Sorter is a web app for sorting MP4 videos into categorized folders (liked
 | `F` | Toggle Super filter |
 | `1-9` | Move liked video to subfolder liked/1-9/ |
 | `0` | Move liked video back to liked/ |
+| `?` | Screenshot current frame |
 
 ## Folder Categories
 

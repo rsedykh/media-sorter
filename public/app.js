@@ -241,7 +241,7 @@ async function updateDisplay() {
 
 // Show visual feedback
 function showFeedback(type) {
-  const symbols = { liked: '♥', disliked: '✗', super: '★' };
+  const symbols = { liked: '♥', disliked: '✗', super: '★', screenshot: '📷' };
 
   // Handle liked subfolders (e.g., 'liked/3')
   if (type.startsWith('liked/')) {
@@ -600,10 +600,46 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       moveToLikedSubfolder(0);
       break;
+    case '?':
+      e.preventDefault();
+      takeScreenshot();
+      break;
   }
 });
 
 
+
+// Take screenshot of current video frame
+async function takeScreenshot() {
+  if (filteredVideos.length === 0) return;
+  const video = filteredVideos[currentIndex];
+
+  // Create canvas and draw current frame
+  const canvas = document.createElement('canvas');
+  canvas.width = videoPlayer.videoWidth;
+  canvas.height = videoPlayer.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(videoPlayer, 0, 0);
+
+  // Convert to blob
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+  // Generate filename: video.mp4 -> video_screenshot.png
+  const baseName = video.name.replace(/\.[^.]+$/, '');
+  const screenshotName = `${baseName}_screenshot.png`;
+
+  try {
+    // Save to same folder as video
+    const fileHandle = await video.parentHandle.getFileHandle(screenshotName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+
+    showFeedback('screenshot');
+  } catch (err) {
+    console.error('Failed to save screenshot:', err);
+  }
+}
 
 // Filter change handlers
 filterUnsorted.addEventListener('change', applyFilters);
