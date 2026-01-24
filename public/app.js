@@ -12,6 +12,7 @@ let allVideos = [];
 let filteredVideos = [];
 let currentIndex = 0;
 let quickPreviewMode = true;
+let halfSpeedMode = false;
 let autoScrollMode = false;
 
 // DOM elements
@@ -31,6 +32,7 @@ const filterDisliked = document.getElementById('filter-disliked');
 const filterSuper = document.getElementById('filter-super');
 const changeFolderBtn = document.getElementById('change-folder');
 const quickPreviewStatus = document.getElementById('quick-preview-status');
+const halfSpeedStatus = document.getElementById('half-speed-status');
 const soundStatus = document.getElementById('sound-status');
 const autoScrollStatus = document.getElementById('autoscroll-status');
 
@@ -198,9 +200,7 @@ async function updateDisplay() {
     }
 
     videoPlayer.src = url;
-    if (quickPreviewMode) {
-      videoPlayer.playbackRate = 2;
-    }
+    videoPlayer.playbackRate = quickPreviewMode ? 2 : (halfSpeedMode ? 0.5 : 1);
     videoPlayer.play().catch(() => {});
   } catch (err) {
     console.error('Failed to load video:', err);
@@ -265,7 +265,7 @@ async function moveVideo(video, targetHandle, newStatus) {
 async function likeVideo() {
   if (filteredVideos.length === 0) return;
   const video = filteredVideos[currentIndex];
-  if (video.status !== 'unsorted') return;
+  if (video.status === 'liked') return;
 
   showFeedback('liked');
   const success = await moveVideo(video, likedHandle, 'liked');
@@ -286,7 +286,7 @@ async function likeVideo() {
 async function dislikeVideo() {
   if (filteredVideos.length === 0) return;
   const video = filteredVideos[currentIndex];
-  if (video.status !== 'unsorted') return;
+  if (video.status === 'disliked') return;
 
   showFeedback('disliked');
   const success = await moveVideo(video, dislikedHandle, 'disliked');
@@ -408,32 +408,58 @@ document.addEventListener('keydown', (e) => {
       break;
     case '/':
       e.preventDefault();
-      videoPlayer.playbackRate = quickPreviewMode ? 4 : 2;
+      if (videoPlayer.paused) {
+        videoPlayer.play();
+      } else {
+        videoPlayer.pause();
+      }
       break;
     case '.':
       e.preventDefault();
       quickPreviewMode = !quickPreviewMode;
+      if (quickPreviewMode) halfSpeedMode = false;
       quickPreviewStatus.textContent = quickPreviewMode ? '(ON)' : '';
-      videoPlayer.playbackRate = quickPreviewMode ? 2 : 1;
+      halfSpeedStatus.textContent = halfSpeedMode ? '(ON)' : '';
+      videoPlayer.playbackRate = quickPreviewMode ? 2 : (halfSpeedMode ? 0.5 : 1);
       break;
     case ',':
+      e.preventDefault();
+      halfSpeedMode = !halfSpeedMode;
+      if (halfSpeedMode) quickPreviewMode = false;
+      halfSpeedStatus.textContent = halfSpeedMode ? '(ON)' : '';
+      quickPreviewStatus.textContent = quickPreviewMode ? '(ON)' : '';
+      videoPlayer.playbackRate = halfSpeedMode ? 0.5 : (quickPreviewMode ? 2 : 1);
+      break;
+    case 'n':
+    case 'N':
       e.preventDefault();
       autoScrollMode = !autoScrollMode;
       autoScrollStatus.textContent = autoScrollMode ? '(ON)' : '';
       videoPlayer.loop = !autoScrollMode;
       break;
-    case '/':
+    case '1':
       e.preventDefault();
-      videoPlayer.playbackRate = quickPreviewMode ? 4 : 2;
+      filterUnsorted.checked = !filterUnsorted.checked;
+      applyFilters();
+      break;
+    case '2':
+      e.preventDefault();
+      filterLiked.checked = !filterLiked.checked;
+      applyFilters();
+      break;
+    case '3':
+      e.preventDefault();
+      filterDisliked.checked = !filterDisliked.checked;
+      applyFilters();
+      break;
+    case '4':
+      e.preventDefault();
+      filterSuper.checked = !filterSuper.checked;
+      applyFilters();
       break;
   }
 });
 
-document.addEventListener('keyup', (e) => {
-  if (e.key === '/') {
-    videoPlayer.playbackRate = quickPreviewMode ? 2 : 1;
-  }
-});
 
 
 // Filter change handlers

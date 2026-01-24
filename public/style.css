@@ -261,6 +261,7 @@ kbd {
 }
 
 #quick-preview-status,
+#half-speed-status,
 #sound-status,
 #autoscroll-status {
   color: #4a9eff;
