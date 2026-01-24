@@ -24,22 +24,36 @@ Open http://localhost:3000 in your browser.
 1. Click "Choose Folder" or drag & drop a folder containing MP4 videos
 2. The app creates `liked/`, `disliked/`, and `super/` subfolders automatically
 3. Use keyboard controls to sort videos
+4. Click the folder name to change folders
 
 ## Keyboard Controls
 
+### Playback
 | Key | Action |
 |-----|--------|
+| `N` | Toggle auto-scroll (auto-advance when video ends) |
 | `M` | Toggle sound on/off |
-| `,` | Toggle auto-scroll (auto-advance when video ends) |
-| `.` | Toggle permanent 2x speed (on by default) |
-| `/` | Hold for 2x speed (4x when 2x mode is on) |
+| `,` | Toggle 0.5x speed |
+| `.` | Toggle 2x speed (on by default) |
+| `/` | Toggle pause |
+
+### Sorting
+| Key | Action |
+|-----|--------|
 | `↑` | Like (move to liked/) |
 | `↓` | Dislike (move to disliked/) |
 | `'` | Super like (move to super/) |
-| `U` | Undo (move back and switch to that video) |
-| `→` | Next video |
+| `U` | Undo last action |
 | `←` | Previous video |
+| `→` | Next video |
 
+### Filters
+| Key | Action |
+|-----|--------|
+| `Q` | Toggle Unsorted filter |
+| `W` | Toggle Liked filter |
+| `E` | Toggle Disliked filter |
+| `R` | Toggle Super filter |
 
 ## Features
 
@@ -49,8 +63,10 @@ Open http://localhost:3000 in your browser.
 - Auto-advances to next unsorted video after sorting
 - Counter showing current position
 - 2x speed mode on by default
+- 0.5x speed mode for slow viewing
 - Auto-scroll mode for hands-free viewing
-- Super like works on already liked/disliked videos
+- Like/dislike/super work on videos of any status
+- Undo restores video to previous state
 
 ## Browser Support
 

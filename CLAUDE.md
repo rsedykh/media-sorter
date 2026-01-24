@@ -19,6 +19,7 @@ Video Sorter is a web app for sorting MP4 videos into categorized folders (liked
 - Videos are loaded as blob URLs via `URL.createObjectURL()`
 - Moving files = copy to destination + delete from source (no native move in the API)
 - 2x speed mode is on by default (`quickPreviewMode = true`)
+- Undo tracks last action via `lastAction` object
 
 ## File Structure
 
@@ -41,14 +42,19 @@ Video Sorter is a web app for sorting MP4 videos into categorized folders (liked
 |-----|--------|
 | `→` | Next video |
 | `←` | Previous video |
-| `↑` | Like |
-| `↓` | Dislike |
-| `'` | Super like |
+| `↑` | Like (works on any status) |
+| `↓` | Dislike (works on any status) |
+| `'` | Super like (works on any status) |
 | `U` | Undo |
+| `N` | Toggle auto-scroll |
 | `M` | Toggle sound |
+| `,` | Toggle 0.5x speed |
 | `.` | Toggle 2x speed |
-| `/` | Hold for 2x speed |
-| `,` | Toggle auto-scroll |
+| `/` | Toggle pause |
+| `Q` | Toggle Unsorted filter |
+| `W` | Toggle Liked filter |
+| `E` | Toggle Disliked filter |
+| `R` | Toggle Super filter |
 
 ## Folder Categories
 
