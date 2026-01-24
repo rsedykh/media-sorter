@@ -72,3 +72,14 @@ Video Sorter is a web app for sorting MP4 videos into categorized folders (liked
 - Only works in Chromium browsers (Chrome, Edge, Opera)
 - Safari/Firefox don't support File System Access API
 - User must grant read/write permission when selecting folder
+
+## Session End Protocol
+
+When the user ends a session (says "session end", "goodbye", etc.), always:
+
+1. Update documentation to reflect any changes made:
+   - **HANDOFF.md** - Update current state, key functions, behaviors
+   - **CLAUDE.md** - Update if architecture or key details changed
+   - **README.md** - Update if user-facing features changed
+2. Commit all changes with a descriptive message
+3. Push to remote

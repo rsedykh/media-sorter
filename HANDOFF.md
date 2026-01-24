@@ -62,7 +62,6 @@ let currentIndex = 0;          // Current video position
 - `moveToLikedSubfolder(n)` - Move liked video to subfolder (1-9) or back to liked/ (0)
 - `undoVideo()` - Restores last moved video to its previous state (including subfolder)
 - `takeScreenshot()` - Captures current frame and saves as PNG to video's folder
-- `getHandleForStatus(status)` - Helper to get folder handle from status name
 
 ### CSS Classes
 

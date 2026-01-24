@@ -89,3 +89,7 @@ Requires browsers with File System Access API support:
 - Opera
 
 Safari and Firefox are not supported.
+
+## Development
+
+This project uses Claude Code for AI-assisted development. See `CLAUDE.md` for AI context and `HANDOFF.md` for detailed implementation state.
