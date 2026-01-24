@@ -47,15 +47,16 @@
 
       <div class="controls">
         <div class="counter" id="counter">0 of 0</div>
+        <div class="shortcuts">
+          <span id="shortcut-autoscroll"><kbd>N</kbd> Auto-scroll</span>
+          <span id="shortcut-sound"><kbd>M</kbd> Sound</span>
+          <span id="shortcut-half-speed"><kbd>,</kbd> 0.5x speed</span>
+          <span id="shortcut-2x-speed" class="active"><kbd>.</kbd> 2x speed</span>
+          <span id="shortcut-pause"><kbd>/</kbd> Pause</span>
+        </div>
         <div class="status" id="status"></div>
       </div>
-
       <div class="shortcuts">
-        <span><kbd>N</kbd> Auto-scroll <span id="autoscroll-status"></span></span>
-        <span><kbd>M</kbd> Sound <span id="sound-status"></span></span>
-        <span><kbd>,</kbd> 0.5x speed <span id="half-speed-status"></span></span>
-        <span><kbd>.</kbd> 2x speed <span id="quick-preview-status">(ON)</span></span>
-        <span><kbd>/</kbd> Pause</span>
         <span><kbd>&uarr;</kbd> Like</span>
         <span><kbd>'</kbd> Super like</span>
         <span><kbd>&darr;</kbd> Dislike</span>
@@ -63,8 +64,6 @@
         <span><kbd>&larr;</kbd> Previous</span>
         <span><kbd>&rarr;</kbd> Next</span>
       </div>
-
-      <button id="change-folder" class="change-folder">Change Folder</button>
     </div>
   </div>
 

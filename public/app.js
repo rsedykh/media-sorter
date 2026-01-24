@@ -31,11 +31,11 @@ const filterUnsorted = document.getElementById('filter-unsorted');
 const filterLiked = document.getElementById('filter-liked');
 const filterDisliked = document.getElementById('filter-disliked');
 const filterSuper = document.getElementById('filter-super');
-const changeFolderBtn = document.getElementById('change-folder');
-const quickPreviewStatus = document.getElementById('quick-preview-status');
-const halfSpeedStatus = document.getElementById('half-speed-status');
-const soundStatus = document.getElementById('sound-status');
-const autoScrollStatus = document.getElementById('autoscroll-status');
+const shortcutAutoscroll = document.getElementById('shortcut-autoscroll');
+const shortcutSound = document.getElementById('shortcut-sound');
+const shortcutHalfSpeed = document.getElementById('shortcut-half-speed');
+const shortcut2xSpeed = document.getElementById('shortcut-2x-speed');
+const shortcutPause = document.getElementById('shortcut-pause');
 
 // Pick folder via button
 pickFolderBtn.addEventListener('click', async () => {
@@ -394,8 +394,8 @@ function findNextUnsortedIndex() {
   return -1;
 }
 
-// Change folder
-changeFolderBtn.addEventListener('click', async () => {
+// Change folder (click on folder name)
+folderNameEl.addEventListener('click', async () => {
   try {
     const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
     await initializeFolder(handle);
@@ -441,37 +441,39 @@ document.addEventListener('keydown', (e) => {
     case 'M':
       e.preventDefault();
       videoPlayer.muted = !videoPlayer.muted;
-      soundStatus.textContent = videoPlayer.muted ? '' : '(ON)';
+      shortcutSound.classList.toggle('active', !videoPlayer.muted);
       break;
     case '/':
       e.preventDefault();
       if (videoPlayer.paused) {
         videoPlayer.play();
+        shortcutPause.classList.remove('active');
       } else {
         videoPlayer.pause();
+        shortcutPause.classList.add('active');
       }
       break;
     case '.':
       e.preventDefault();
       quickPreviewMode = !quickPreviewMode;
       if (quickPreviewMode) halfSpeedMode = false;
-      quickPreviewStatus.textContent = quickPreviewMode ? '(ON)' : '';
-      halfSpeedStatus.textContent = halfSpeedMode ? '(ON)' : '';
+      shortcut2xSpeed.classList.toggle('active', quickPreviewMode);
+      shortcutHalfSpeed.classList.toggle('active', halfSpeedMode);
       videoPlayer.playbackRate = quickPreviewMode ? 2 : (halfSpeedMode ? 0.5 : 1);
       break;
     case ',':
       e.preventDefault();
       halfSpeedMode = !halfSpeedMode;
       if (halfSpeedMode) quickPreviewMode = false;
-      halfSpeedStatus.textContent = halfSpeedMode ? '(ON)' : '';
-      quickPreviewStatus.textContent = quickPreviewMode ? '(ON)' : '';
+      shortcutHalfSpeed.classList.toggle('active', halfSpeedMode);
+      shortcut2xSpeed.classList.toggle('active', quickPreviewMode);
       videoPlayer.playbackRate = halfSpeedMode ? 0.5 : (quickPreviewMode ? 2 : 1);
       break;
     case 'n':
     case 'N':
       e.preventDefault();
       autoScrollMode = !autoScrollMode;
-      autoScrollStatus.textContent = autoScrollMode ? '(ON)' : '';
+      shortcutAutoscroll.classList.toggle('active', autoScrollMode);
       videoPlayer.loop = !autoScrollMode;
       break;
     case '1':
