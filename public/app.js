@@ -1187,12 +1187,25 @@ document.addEventListener('keydown', (e) => {
       break;
     case '/':
       e.preventDefault();
-      if (videoPlayer.paused) {
-        videoPlayer.play();
-        shortcutPause.classList.remove('active');
+      if (gridMode) {
+        // Toggle pause for all grid videos
+        const gridVideoEls = document.querySelectorAll('.grid-video');
+        const anyPlaying = Array.from(gridVideoEls).some(v => !v.paused && v.src);
+        if (anyPlaying) {
+          gridVideoEls.forEach(v => v.pause());
+          shortcutPause.classList.add('active');
+        } else {
+          gridVideoEls.forEach(v => { if (v.src) v.play().catch(() => {}); });
+          shortcutPause.classList.remove('active');
+        }
       } else {
-        videoPlayer.pause();
-        shortcutPause.classList.add('active');
+        if (videoPlayer.paused) {
+          videoPlayer.play();
+          shortcutPause.classList.remove('active');
+        } else {
+          videoPlayer.pause();
+          shortcutPause.classList.add('active');
+        }
       }
       break;
     case '.':
