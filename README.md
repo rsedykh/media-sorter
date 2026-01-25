@@ -30,60 +30,6 @@ Open http://localhost:3000 in your browser.
 - Videos: `.mp4`, `.webm`, `.mov`, `.m4v`
 - Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`
 
-## Keyboard Controls
-
-### Playback
-| Key | Action |
-|-----|--------|
-| `N` | Toggle auto-scroll (videos: advance on end; images: advance after 6s) |
-| `M` | Toggle sound on/off |
-| `,` | Toggle 0.5x speed (images: 12s display time) |
-| `.` | Toggle 2x speed (on by default; images: 3s display time) |
-| `/` | Toggle pause |
-
-### Sorting
-| Key | Action |
-|-----|--------|
-| `↑` | Like (move to liked/) |
-| `↓` | Dislike (move to disliked/) |
-| `'` | Super like (move to super/) |
-| `J` | Move back to unsorted |
-| `U` | Undo last action |
-| `←` | Previous video |
-| `→` | Next video |
-
-### Filters (single selection)
-| Key | Action |
-|-----|--------|
-| `A` | Show Unsorted videos |
-| `S` | Show Liked videos |
-| `D` | Show Disliked videos |
-| `F` | Show Super videos |
-
-### Subfolders (Liked & Super)
-| Key | Action |
-|-----|--------|
-| `1-9` | Move liked/super video to subfolder 1-9/ |
-| `0` | Move liked/super video back to parent folder |
-
-### Grid View
-| Key | Action |
-|-----|--------|
-| `G` | Toggle 3x3 grid view |
-| `I` | Cycle media type filter (All → Videos → Images) |
-
-In grid view:
-- ←/→ navigate by page (9 videos)
-- Hover over a video and use sorting keys (↑/↓/'/J)
-- Click any video to return to single view
-
-### Other
-| Key | Action |
-|-----|--------|
-| `?` | Screenshot current frame |
-
-**Note:** Letter shortcuts also work with Russian keyboard layout (e.g., `Г` for undo, `Ф` for unsorted).
-
 ## Features
 
 - Supports both videos and images in one workflow
@@ -101,15 +47,6 @@ In grid view:
 - Undo restores media to previous state
 - Screenshot current frame to video's folder
 - 3x3 grid view for browsing multiple media files at once
-
-## Browser Support
-
-Requires browsers with File System Access API support:
-- Chrome
-- Edge
-- Opera
-
-Safari and Firefox are not supported.
 
 ## Development
 
