@@ -5,7 +5,7 @@
 The Video Sorter app is fully functional. Users can:
 1. Select a folder via button, drag-and-drop, or clicking folder name to change
 2. Sort videos into liked/disliked/super folders using keyboard
-3. Sub-sort liked videos into numbered subfolders (liked/1-9/) using 1-9 keys
+3. Sub-sort liked and super videos into numbered subfolders (1-9/) using 1-9 keys
 4. Filter which category to display (A/S/D/F keys - single selection)
 5. Control playback speed (0.5x, 1x, 2x) and sound
 6. Use auto-scroll for hands-free viewing
@@ -21,6 +21,7 @@ The Video Sorter app is fully functional. Users can:
 | `↑` | Like (move to liked/) - works on any status |
 | `↓` | Dislike (move to disliked/) - works on any status |
 | `'` | Super like (move to super/) - works on any status |
+| `J` | Move back to unsorted (root folder) |
 | `U` | Undo (restore last action and navigate to video) |
 | `N` | Toggle auto-scroll (auto-advance when video ends) |
 | `M` | Toggle sound on/off |
@@ -31,8 +32,8 @@ The Video Sorter app is fully functional. Users can:
 | `S` | Show Liked videos |
 | `D` | Show Disliked videos |
 | `F` | Show Super videos |
-| `1-9` | Move liked video to subfolder liked/1-9/ |
-| `0` | Move liked video back to liked/ |
+| `1-9` | Move liked/super video to subfolder 1-9/ |
+| `0` | Move liked/super video back to parent folder |
 | `?` | Screenshot current frame (saved to video's folder) |
 
 ## Code Structure
@@ -46,7 +47,7 @@ let halfSpeedMode = false;     // 0.5x speed mode
 let autoScrollMode = false;    // Auto-advance when video ends
 let lastAction = null;         // { video, previousStatus, previousParentHandle, previousSubfolder } for undo
 let rootHandle, likedHandle, dislikedHandle, superHandle;  // Folder handles
-let allVideos = [];            // All loaded videos with status and likedSubfolder
+let allVideos = [];            // All loaded videos with status, likedSubfolder, superSubfolder
 let filteredVideos = [];       // Videos matching current filter (single selection)
 let currentIndex = 0;          // Current video position
 ```
@@ -54,12 +55,13 @@ let currentIndex = 0;          // Current video position
 ### Key Functions
 
 - `initializeFolder(handle)` - Sets up folder handles, creates subfolders
-- `loadVideos()` - Scans all folders for .mp4 files (including liked/1-9 subfolders)
+- `loadVideos()` - Scans all folders for .mp4 files (including liked/1-9 and super/1-9 subfolders)
 - `applyFilters()` - Filters videos based on selected radio button
 - `updateDisplay()` - Loads and plays current video, shows subfolder in status
 - `moveVideo(video, targetHandle, newStatus)` - Moves file between folders
-- `likeVideo()`, `dislikeVideo()`, `superLikeVideo()` - Sort actions (work on any status)
+- `likeVideo()`, `dislikeVideo()`, `superLikeVideo()`, `moveToUnsorted()` - Sort actions
 - `moveToLikedSubfolder(n)` - Move liked video to subfolder (1-9) or back to liked/ (0)
+- `moveToSuperSubfolder(n)` - Move super video to subfolder (1-9) or back to super/ (0)
 - `undoVideo()` - Restores last moved video to its previous state (including subfolder)
 - `takeScreenshot()` - Captures current frame and saves as PNG to video's folder
 
@@ -74,7 +76,7 @@ let currentIndex = 0;          // Current video position
 ## Key Behaviors
 
 1. **Like/Dislike/Super** - All work on any video status, not just unsorted
-2. **Liked subfolders** - Press 1-9 on liked videos to move to liked/1-9/, press 0 to move back
+2. **Subfolders** - Press 1-9 on liked/super videos to move to subfolders, press 0 to move back to parent
 3. **Filters** - Radio buttons (single selection), A/S/D/F select filter directly
 4. **Undo** - Restores video to its *previous* state (including subfolder), switches filter, navigates to video
 5. **Auto-scroll** - Disables loop, advances on video end
@@ -109,8 +111,8 @@ let currentIndex = 0;          // Current video position
 - [ ] Videos load and autoplay at 2x speed
 - [ ] All keyboard shortcuts work (including A/S/D/F filters)
 - [ ] Files move to correct folders
-- [ ] Like/dislike work on videos of any status
-- [ ] Liked subfolder sorting (1-9, 0) works
+- [ ] Like/dislike/super/unsorted work on videos of any status
+- [ ] Liked and super subfolder sorting (1-9, 0) works
 - [ ] Undo restores to previous state (including subfolder)
 - [ ] Filters show correct videos (single selection)
 - [ ] Auto-scroll advances when video ends

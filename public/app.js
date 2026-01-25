@@ -162,15 +162,36 @@ async function loadVideos() {
     }
   }
 
-  // Load super videos
+  // Load super videos from main super/ folder
   for await (const entry of superHandle.values()) {
     if (entry.kind === 'file' && entry.name.toLowerCase().endsWith(VIDEO_EXTENSION)) {
       allVideos.push({
         name: entry.name,
         handle: entry,
         status: 'super',
-        parentHandle: superHandle
+        parentHandle: superHandle,
+        superSubfolder: null
       });
+    }
+  }
+
+  // Load super videos from numbered subfolders (1-9)
+  for (let n = 1; n <= 9; n++) {
+    try {
+      const subfolderHandle = await superHandle.getDirectoryHandle(String(n));
+      for await (const entry of subfolderHandle.values()) {
+        if (entry.kind === 'file' && entry.name.toLowerCase().endsWith(VIDEO_EXTENSION)) {
+          allVideos.push({
+            name: entry.name,
+            handle: entry,
+            status: 'super',
+            parentHandle: subfolderHandle,
+            superSubfolder: n
+          });
+        }
+      }
+    } catch (err) {
+      // Subfolder doesn't exist, skip it
     }
   }
 
@@ -228,6 +249,8 @@ async function updateDisplay() {
   // Show subfolder in status if applicable
   if (video.status === 'liked' && video.likedSubfolder) {
     status.textContent = `liked/${video.likedSubfolder}`;
+  } else if (video.status === 'super' && video.superSubfolder) {
+    status.textContent = `super/${video.superSubfolder}`;
   } else {
     status.textContent = video.status;
   }
@@ -236,13 +259,17 @@ async function updateDisplay() {
 
 // Show visual feedback
 function showFeedback(type) {
-  const symbols = { liked: '♥', disliked: '✗', super: '★', screenshot: '📷' };
+  const symbols = { liked: '♥', disliked: '✗', super: '★', unsorted: '⟲', screenshot: '📷' };
 
   // Handle liked subfolders (e.g., 'liked/3')
   if (type.startsWith('liked/')) {
     const subfolderNum = type.split('/')[1];
     feedback.textContent = `♥${subfolderNum}`;
     feedback.className = 'feedback liked show';
+  } else if (type.startsWith('super/')) {
+    const subfolderNum = type.split('/')[1];
+    feedback.textContent = `★${subfolderNum}`;
+    feedback.className = 'feedback super show';
   } else {
     feedback.textContent = symbols[type] || '♥';
     feedback.className = `feedback ${type} show`;
@@ -301,13 +328,14 @@ async function likeVideo() {
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
-  const previousSubfolder = video.likedSubfolder;
+  const previousSubfolder = video.likedSubfolder || video.superSubfolder;
 
   showFeedback('liked');
   const success = await moveVideo(video, likedHandle, 'liked');
 
   if (success) {
     video.likedSubfolder = null;
+    video.superSubfolder = null;
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
@@ -328,13 +356,14 @@ async function dislikeVideo() {
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
-  const previousSubfolder = video.likedSubfolder;
+  const previousSubfolder = video.likedSubfolder || video.superSubfolder;
 
   showFeedback('disliked');
   const success = await moveVideo(video, dislikedHandle, 'disliked');
 
   if (success) {
     video.likedSubfolder = null;
+    video.superSubfolder = null;
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
@@ -355,13 +384,14 @@ async function superLikeVideo() {
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
-  const previousSubfolder = video.likedSubfolder;
+  const previousSubfolder = video.likedSubfolder || video.superSubfolder;
 
   showFeedback('super');
   const success = await moveVideo(video, superHandle, 'super');
 
   if (success) {
     video.likedSubfolder = null;
+    video.superSubfolder = null;
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
     const nextUnsortedIndex = findNextUnsortedIndex();
     applyFilters();
@@ -370,6 +400,28 @@ async function superLikeVideo() {
       currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
       if (currentIndex === -1) currentIndex = 0;
     }
+    updateDisplay();
+  }
+}
+
+// Move current video back to unsorted (root folder)
+async function moveToUnsorted() {
+  if (filteredVideos.length === 0) return;
+  const video = filteredVideos[currentIndex];
+  if (video.status === 'unsorted') return;
+
+  const previousStatus = video.status;
+  const previousParentHandle = video.parentHandle;
+  const previousSubfolder = video.likedSubfolder || video.superSubfolder;
+
+  showFeedback('unsorted');
+  const success = await moveVideo(video, rootHandle, 'unsorted');
+
+  if (success) {
+    video.likedSubfolder = null;
+    video.superSubfolder = null;
+    lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
+    applyFilters();
     updateDisplay();
   }
 }
@@ -411,6 +463,43 @@ async function moveToLikedSubfolder(n) {
   }
 }
 
+// Move super video to a numbered subfolder (1-9) or back to parent super/ (0)
+async function moveToSuperSubfolder(n) {
+  if (filteredVideos.length === 0) return;
+  const video = filteredVideos[currentIndex];
+
+  // Only works on super videos
+  if (video.status !== 'super') return;
+
+  // Prevent no-op moves
+  if (n === 0 && video.superSubfolder === null) return;
+  if (n > 0 && video.superSubfolder === n) return;
+
+  // Save state for undo
+  const previousSubfolder = video.superSubfolder;
+  const previousParentHandle = video.parentHandle;
+
+  // Get target folder handle
+  let targetHandle;
+  if (n === 0) {
+    targetHandle = superHandle;
+  } else {
+    // Create subfolder if needed
+    targetHandle = await superHandle.getDirectoryHandle(String(n), { create: true });
+  }
+
+  // Show feedback
+  showFeedback(n === 0 ? 'super' : `super/${n}`);
+
+  // Move the video (status stays 'super')
+  const success = await moveVideo(video, targetHandle, 'super');
+  if (success) {
+    video.superSubfolder = (n === 0) ? null : n;
+    lastAction = { video, previousStatus: 'super', previousParentHandle, previousSubfolder };
+    nextVideo();
+  }
+}
+
 // Undo - restore last moved video to its previous state and navigate to it
 async function undoVideo() {
   if (!lastAction) return;
@@ -420,9 +509,16 @@ async function undoVideo() {
 
   const success = await moveVideo(video, previousParentHandle, previousStatus);
   if (success) {
-    // Restore subfolder state for liked videos
+    // Restore subfolder state for liked/super videos
     if (previousStatus === 'liked') {
       video.likedSubfolder = previousSubfolder;
+      video.superSubfolder = null;
+    } else if (previousStatus === 'super') {
+      video.superSubfolder = previousSubfolder;
+      video.likedSubfolder = null;
+    } else {
+      video.likedSubfolder = null;
+      video.superSubfolder = null;
     }
 
     lastAction = null;
@@ -569,6 +665,11 @@ document.addEventListener('keydown', (e) => {
       filterSuper.checked = true;
       applyFilters();
       break;
+    case 'j':
+    case 'J':
+      e.preventDefault();
+      moveToUnsorted();
+      break;
     case '1':
     case '2':
     case '3':
@@ -579,11 +680,25 @@ document.addEventListener('keydown', (e) => {
     case '8':
     case '9':
       e.preventDefault();
-      moveToLikedSubfolder(parseInt(e.key));
+      if (filteredVideos.length > 0) {
+        const video = filteredVideos[currentIndex];
+        if (video.status === 'liked') {
+          moveToLikedSubfolder(parseInt(e.key));
+        } else if (video.status === 'super') {
+          moveToSuperSubfolder(parseInt(e.key));
+        }
+      }
       break;
     case '0':
       e.preventDefault();
-      moveToLikedSubfolder(0);
+      if (filteredVideos.length > 0) {
+        const video = filteredVideos[currentIndex];
+        if (video.status === 'liked') {
+          moveToLikedSubfolder(0);
+        } else if (video.status === 'super') {
+          moveToSuperSubfolder(0);
+        }
+      }
       break;
     case '?':
       e.preventDefault();

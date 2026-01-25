@@ -43,6 +43,7 @@ Open http://localhost:3000 in your browser.
 | `↑` | Like (move to liked/) |
 | `↓` | Dislike (move to disliked/) |
 | `'` | Super like (move to super/) |
+| `J` | Move back to unsorted |
 | `U` | Undo last action |
 | `←` | Previous video |
 | `→` | Next video |
@@ -55,11 +56,11 @@ Open http://localhost:3000 in your browser.
 | `D` | Show Disliked videos |
 | `F` | Show Super videos |
 
-### Liked Subfolders
+### Subfolders (Liked & Super)
 | Key | Action |
 |-----|--------|
-| `1-9` | Move liked video to subfolder liked/1-9/ |
-| `0` | Move liked video back to liked/ |
+| `1-9` | Move liked/super video to subfolder 1-9/ |
+| `0` | Move liked/super video back to parent folder |
 
 ### Other
 | Key | Action |
@@ -70,7 +71,7 @@ Open http://localhost:3000 in your browser.
 
 - Videos autoplay and loop
 - Filter by category (unsorted/liked/disliked/super)
-- Sub-sort liked videos into numbered subfolders (1-9)
+- Sub-sort liked and super videos into numbered subfolders (1-9)
 - Visual feedback when sorting (♥ like, ✗ dislike, ★ super)
 - Auto-advances to next unsorted video after sorting
 - Counter showing current position

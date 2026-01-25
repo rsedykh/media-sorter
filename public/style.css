@@ -171,6 +171,10 @@ h1 {
   color: #f9a825;
 }
 
+.feedback.unsorted {
+  color: #888;
+}
+
 .no-videos {
   position: absolute;
   top: 50%;
