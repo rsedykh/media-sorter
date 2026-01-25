@@ -61,6 +61,8 @@ Video Sorter is a web app for sorting MP4 videos into categorized folders (liked
 | `?` | Screenshot current frame |
 | `G` | Toggle 3x3 grid view |
 
+**Russian keyboard support:** Letter shortcuts also work with Russian layout (e.g., `Г` for undo, `Ф` for unsorted filter). Punctuation shortcuts (`. , / ?`) work in both layouts.
+
 ## Grid View
 
 Press `G` to toggle a 3x3 grid showing 9 videos at once:

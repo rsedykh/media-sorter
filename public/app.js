@@ -937,12 +937,33 @@ folderNameEl.addEventListener('click', async () => {
   }
 });
 
+// Russian to English key mapping (based on physical key position)
+// Allows using shortcuts without switching keyboard layout
+// Only Cyrillic characters - ASCII punctuation (. , / ?) works in both layouts
+const russianToEnglish = {
+  'г': 'u', 'Г': 'U',
+  'ь': 'm', 'Ь': 'M',
+  'т': 'n', 'Т': 'N',
+  'ф': 'a', 'Ф': 'A',
+  'ы': 's', 'Ы': 'S',
+  'в': 'd', 'В': 'D',
+  'а': 'f', 'А': 'F',
+  'о': 'j', 'О': 'J',
+  'п': 'g', 'П': 'G',
+  'э': "'",
+  'б': ',',
+  'ю': '.'
+};
+
 // Keyboard controls
 document.addEventListener('keydown', (e) => {
   // Ignore if picker screen is visible
   if (!pickerScreen.classList.contains('hidden')) return;
 
-  switch (e.key) {
+  // Normalize Russian keys to English equivalents
+  const key = russianToEnglish[e.key] || e.key;
+
+  switch (key) {
     case 'ArrowRight':
       e.preventDefault();
       if (gridMode) {
@@ -1063,9 +1084,9 @@ document.addEventListener('keydown', (e) => {
         const video = getTargetVideoForAction();
         if (video) {
           if (video.status === 'liked') {
-            moveToLikedSubfolder(parseInt(e.key));
+            moveToLikedSubfolder(parseInt(key));
           } else if (video.status === 'super') {
-            moveToSuperSubfolder(parseInt(e.key));
+            moveToSuperSubfolder(parseInt(key));
           }
         }
       }

@@ -77,6 +77,8 @@ In grid view:
 |-----|--------|
 | `?` | Screenshot current frame |
 
+**Note:** Letter shortcuts also work with Russian keyboard layout (e.g., `Г` for undo, `Ф` for unsorted).
+
 ## Features
 
 - Videos autoplay and loop

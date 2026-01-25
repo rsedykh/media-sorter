@@ -37,6 +37,8 @@ The Video Sorter app is fully functional. Users can:
 | `?` | Screenshot current frame (saved to video's folder) |
 | `G` | Toggle 3x3 grid view |
 
+**Russian keyboard support:** Letter shortcuts work with Russian layout (Cyrillic). Punctuation (`. , / ?`) works in both layouts.
+
 ## Code Structure
 
 ### app.js Key Variables
