@@ -5,5 +5,5 @@ const PORT = 3000;
 app.use(express.static('public'));
 
 app.listen(PORT, () => {
-  console.log(`Video Sorter running at http://localhost:${PORT}`);
+  console.log(`Media Sorter running at http://localhost:${PORT}`);
 });

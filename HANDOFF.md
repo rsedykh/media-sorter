@@ -5,7 +5,7 @@
 The Media Sorter app is fully functional. Users can:
 1. Select a folder via button, drag-and-drop, or clicking folder name to change
 2. Sort videos and images into liked/disliked/super folders using keyboard
-3. Sub-sort liked and super media into numbered subfolders (1-9/) using 1-9 keys
+3. Sub-sort any categorized media into numbered subfolders (1-9/) using 1-9 keys
 4. Filter which category to display (A/S/D/F keys - single selection)
 5. Control playback speed (0.5x, 1x, 2x) and sound
 6. Use auto-scroll for hands-free viewing (images display for 6s, affected by speed)
@@ -36,8 +36,8 @@ The Media Sorter app is fully functional. Users can:
 | `S` | Show Liked media |
 | `D` | Show Disliked media |
 | `F` | Show Super media |
-| `1-9` | Move liked/super media to subfolder 1-9/ |
-| `0` | Move liked/super media back to parent folder |
+| `1-9` | Move categorized media to subfolder 1-9/ |
+| `0` | Move media back to parent category folder |
 | `?` | Screenshot current frame (videos only) |
 | `G` | Toggle 3x3 grid view |
 | `I` | Cycle media type filter (All → Videos → Images) |
@@ -50,18 +50,22 @@ The Media Sorter app is fully functional. Users can:
 
 ```javascript
 // Constants
+const FEEDBACK_DURATION_MS = 300;
 const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
 const IMAGE_BASE_DURATION = 6000;  // 6 seconds for images in auto-scroll
+const MAX_SUBFOLDERS = 9;
+const GRID_SIZE = 9;
+const FEEDBACK_SYMBOLS = { liked: '♥', disliked: '✗', super: '★', unsorted: '⟲', screenshot: '📷' };
 
 // State
 let quickPreviewMode = true;   // 2x speed on by default
 let halfSpeedMode = false;     // 0.5x speed mode
 let autoScrollMode = false;    // Auto-advance when video ends / image timer
-let lastAction = null;         // { video, previousStatus, previousParentHandle, previousSubfolder } for undo
+let lastAction = null;         // { media, previousStatus, previousParentHandle, previousSubfolder } for undo
 let rootHandle, likedHandle, dislikedHandle, superHandle;  // Folder handles
-let allVideos = [];            // All loaded media with status, type, likedSubfolder, superSubfolder
-let filteredVideos = [];       // Media matching current filter (single selection)
+let allMedia = [];             // All loaded media with status, type, and subfolder properties
+let filteredMedia = [];        // Media matching current filter (single selection)
 let currentIndex = 0;          // Current media position
 let imageAutoScrollTimer = null;  // Timer for image auto-scroll
 let mediaTypeFilter = 'all';      // 'all', 'video', 'image'
@@ -70,31 +74,60 @@ let mediaTypeFilter = 'all';      // 'all', 'video', 'image'
 let gridMode = false;          // Whether grid view is active
 let gridPageIndex = 0;         // Current page in grid (0-based)
 let hoveredSlotIndex = null;   // Which slot (0-8) mouse is over
-let gridVideos = [];           // Array of media objects for current page
+let gridMedia = [];            // Array of media objects for current page
 let gridBlobUrls = [];         // For cleanup
+let gridSessionMedia = [];     // Snapshot of filteredMedia for stable grid positions
 ```
 
 ### Key Functions
 
-- `isVideoFile(filename)`, `isImageFile(filename)`, `isMediaFile(filename)` - File type helpers
-- `initializeFolder(handle)` - Sets up folder handles, creates subfolders
-- `loadVideos()` - Scans all folders for media files (including liked/1-9 and super/1-9 subfolders)
-- `applyFilters()` - Filters media based on selected radio button
-- `updateDisplay()` - Loads and plays current video or displays image, handles image timer
-- `getImageDuration()` - Returns image display time based on speed mode (3s/6s/12s)
+**File helpers:**
+- `isVideoFile(filename)`, `isImageFile(filename)`, `isMediaFile(filename)` - File type detection
+- `getHandleForStatus(statusName)` - Returns folder handle for a status
+- `getSubfolderProperty(statusName)` - Returns subfolder property name (e.g., 'likedSubfolder')
+
+**Initialization:**
+- `initializeFolder(handle)` - Sets up folder handles, creates category subfolders
+- `loadMedia()` - Scans all folders for media files (including numbered subfolders)
+
+**Filtering:**
+- `buildFilteredList()` - Returns filtered list based on current filter settings
+- `applyFilters()` - Updates filteredMedia and refreshes display
+- `applyFiltersKeepGrid()` - Updates filteredMedia without reloading grid
+
+**Display:**
+- `updateDisplay()` - Loads and plays current media (single view)
 - `updateMediaTypeIndicator()` - Updates the UI indicator for media type filter
-- `clearImageTimer()`, `startImageTimer()` - Image auto-scroll timer management
-- `moveVideo(video, targetHandle, newStatus)` - Moves file between folders
-- `likeVideo()`, `dislikeVideo()`, `superLikeVideo()`, `moveToUnsorted()` - Sort actions
-- `moveToLikedSubfolder(n)` - Move liked media to subfolder (1-9) or back to liked/ (0)
-- `moveToSuperSubfolder(n)` - Move super media to subfolder (1-9) or back to super/ (0)
-- `undoVideo()` - Restores last moved media to its previous state (including subfolder)
-- `takeScreenshot()` - Captures current frame and saves as PNG to video's folder
+- `getCurrentPlaybackRate()` - Returns playback rate based on speed mode
+
+**Feedback:**
+- `renderFeedback(element, type, isGrid)` - Core feedback rendering (handles subfolders)
+- `showFeedback(type)` - Shows feedback overlay (single view)
+- `showGridFeedback(slotIndex, type)` - Shows feedback overlay on grid slot
+
+**Sorting (consolidated):**
+- `sortMedia(newStatus)` - Generic sort function for all statuses
+- `likeMedia()`, `dislikeMedia()`, `superLikeMedia()`, `moveToUnsorted()` - Convenience wrappers
+- `moveToSubfolder(n)` - Move any categorized media to subfolder (works for liked/disliked/super)
+- `moveMediaFile(media, targetHandle, newStatus)` - Low-level file move operation
+
+**Navigation:**
+- `nextMedia()`, `prevMedia()` - Navigate in single view
+- `undoMedia()` - Restores last moved media to its previous state
+
+**Grid mode:**
 - `toggleGridMode()` - Switches between single and 3x3 grid view
 - `updateGridDisplay()` - Loads 9 media items into grid slots
 - `nextGridPage()`, `prevGridPage()` - Navigate grid pages
-- `getTargetVideoForAction()` - Returns hovered media (grid) or current media (single)
-- `showGridFeedback(slotIndex, type)` - Shows feedback overlay on grid slot
+- `getTargetMediaForAction()` - Returns hovered media (grid) or current media (single)
+- `clearGridSlot(slotIndex)` - Clears a grid slot after sorting
+- `checkGridAutoAdvance()` - Auto-advance when all grid slots are sorted
+- `updateGridPlaybackRate()` - Syncs playback rate to all grid videos
+
+**Other:**
+- `takeScreenshot()` - Captures current frame and saves as PNG (videos only)
+- `getImageDuration()` - Returns image display time based on speed mode
+- `clearImageTimer()`, `startImageTimer()` - Image auto-scroll timer management
 
 ### CSS Classes
 
@@ -107,14 +140,14 @@ let gridBlobUrls = [];         // For cleanup
 ## Key Behaviors
 
 1. **Like/Dislike/Super** - All work on any media status, not just unsorted
-2. **Subfolders** - Press 1-9 on liked/super media to move to subfolders, press 0 to move back to parent
+2. **Subfolders** - Press 1-9 on any categorized media to move to subfolders, press 0 to move back to parent
 3. **Filters** - Radio buttons (single selection), A/S/D/F select filter directly
 4. **Undo** - Restores media to its *previous* state (including subfolder), switches filter, navigates to media
 5. **Auto-scroll** - Videos: disables loop, advances on end. Images: advance after 6s (3s at 2x, 12s at 0.5x)
-6. **Speed modes** - 0.5x and 2x are mutually exclusive; affect both video playback and image timer
+6. **Speed modes** - 0.5x and 2x are mutually exclusive; affect video playback, grid videos, and image timer
 7. **Active indicators** - Toggle options turn blue when active (no "(ON)" text)
 8. **Change folder** - Click on folder name in header (underlined)
-9. **Screenshot** - Press ? to save current frame as {videoname}_screenshot.png (videos only)
+9. **Screenshot** - Press ? to save current frame as {medianame}_screenshot.png (videos only)
 10. **Grid view** - Press G to see 9 media at once; hover to select, click to focus; arrows navigate pages
 11. **Grid status badges** - Only shown for media with subfolder assignments (not for category alone)
 12. **Media types** - Each media object has `type: 'video'` or `type: 'image'` property
@@ -129,15 +162,13 @@ let gridBlobUrls = [];         // For cleanup
 
 ## Potential Improvements
 
-1. **Code duplication** - `likeVideo()`, `dislikeVideo()`, `superLikeVideo()` share similar logic
+1. **Error handling** - No user-visible errors, only console.error()
 
-2. **Error handling** - No user-visible errors, only console.error()
+2. **Loading states** - No indicator when loading large videos
 
-3. **Loading states** - No indicator when loading large videos
+3. **Persistence** - Filter state and modes don't persist across sessions
 
-4. **Persistence** - Filter state and modes don't persist across sessions
-
-5. **Multi-level undo** - Currently only supports single undo
+4. **Multi-level undo** - Currently only supports single undo
 
 ## Testing Checklist
 
@@ -148,7 +179,7 @@ let gridBlobUrls = [];         // For cleanup
 - [ ] All keyboard shortcuts work (including A/S/D/F filters)
 - [ ] Files move to correct folders
 - [ ] Like/dislike/super/unsorted work on media of any status
-- [ ] Liked and super subfolder sorting (1-9, 0) works
+- [ ] Subfolder sorting (1-9, 0) works for liked, disliked, and super
 - [ ] Undo restores to previous state (including subfolder)
 - [ ] Filters show correct media (single selection)
 - [ ] Auto-scroll advances when video ends
@@ -156,6 +187,7 @@ let gridBlobUrls = [];         // For cleanup
 - [ ] Image timer respects 2x speed (3s) and 0.5x speed (12s)
 - [ ] Pause toggle works
 - [ ] 0.5x and 2x speed modes are mutually exclusive
+- [ ] Speed mode changes sync to grid videos
 - [ ] Sound toggle works
 - [ ] Active toggles highlight in blue
 - [ ] Screenshot saves PNG to video's folder

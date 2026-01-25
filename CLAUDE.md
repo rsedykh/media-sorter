@@ -26,6 +26,8 @@ Media Sorter is a web app for sorting videos and images into categorized folders
 - Undo tracks last action via `lastAction` object
 - Images in auto-scroll mode display for 6s (3s at 2x, 12s at 0.5x)
 - Each media object has a `type` property: `'video'` or `'image'`
+- Sorting functions consolidated into generic `sortMedia(newStatus)` with convenience wrappers
+- Subfolder support for all category folders (liked, disliked, super) via unified `moveToSubfolder(n)`
 
 ## File Structure
 
@@ -62,8 +64,8 @@ Media Sorter is a web app for sorting videos and images into categorized folders
 | `S` | Show Liked media |
 | `D` | Show Disliked media |
 | `F` | Show Super media |
-| `1-9` | Move liked/super media to subfolder 1-9/ |
-| `0` | Move liked/super media back to parent folder |
+| `1-9` | Move categorized media to subfolder 1-9/ |
+| `0` | Move media back to parent category folder |
 | `?` | Screenshot current frame (videos only) |
 | `G` | Toggle 3x3 grid view |
 | `I` | Cycle media type filter (All → Videos → Images) |

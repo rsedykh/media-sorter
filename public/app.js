@@ -3,6 +3,17 @@ const FEEDBACK_DURATION_MS = 300;
 const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
 const IMAGE_BASE_DURATION = 6000; // 6 seconds for images in auto-scroll
+const MAX_SUBFOLDERS = 9;
+const GRID_SIZE = 9;
+
+// Feedback symbols for all types
+const FEEDBACK_SYMBOLS = {
+  liked: '♥',
+  disliked: '✗',
+  super: '★',
+  unsorted: '⟲',
+  screenshot: '📷'
+};
 
 // File type helpers
 function isVideoFile(filename) {
@@ -25,13 +36,13 @@ let likedHandle = null;
 let dislikedHandle = null;
 let superHandle = null;
 
-let allVideos = [];
-let filteredVideos = [];
+let allMedia = [];
+let filteredMedia = [];
 let currentIndex = 0;
 let quickPreviewMode = true;
 let halfSpeedMode = false;
 let autoScrollMode = false;
-let lastAction = null; // { video, previousStatus, previousParentHandle, previousSubfolder }
+let lastAction = null; // { media, previousStatus, previousParentHandle, previousSubfolder }
 let imageAutoScrollTimer = null;
 let mediaTypeFilter = 'all'; // 'all', 'video', 'image'
 
@@ -39,10 +50,9 @@ let mediaTypeFilter = 'all'; // 'all', 'video', 'image'
 let gridMode = false;
 let gridPageIndex = 0;        // Current page (0-based)
 let hoveredSlotIndex = null;  // Which slot (0-8) mouse is over
-let gridVideos = [];          // Array of video objects for current page (or null for empty/sorted)
+let gridMedia = [];           // Array of media objects for current page (or null for empty/sorted)
 let gridBlobUrls = [];        // For cleanup
-let gridSessionMedia = [];    // Snapshot of filteredVideos for stable grid positions
-const GRID_SIZE = 9;
+let gridSessionMedia = [];    // Snapshot of filteredMedia for stable grid positions
 
 // DOM elements
 const pickerScreen = document.getElementById('picker-screen');
@@ -55,7 +65,7 @@ const imagePlayer = document.getElementById('image-player');
 const counter = document.getElementById('counter');
 const status = document.getElementById('status');
 const feedback = document.getElementById('feedback');
-const noVideos = document.getElementById('no-videos');
+const noMediaEl = document.getElementById('no-videos');
 const filterUnsorted = document.getElementById('filter-unsorted');
 const filterLiked = document.getElementById('filter-liked');
 const filterDisliked = document.getElementById('filter-disliked');
@@ -132,17 +142,33 @@ async function initializeFolder(handle) {
   pickerScreen.classList.add('hidden');
   appScreen.classList.remove('hidden');
 
-  await loadVideos();
+  await loadMedia();
 }
 
-// Load videos from all folders
-async function loadVideos() {
-  allVideos = [];
+// Get folder handle for a status
+function getHandleForStatus(statusName) {
+  const handles = {
+    unsorted: rootHandle,
+    liked: likedHandle,
+    disliked: dislikedHandle,
+    super: superHandle
+  };
+  return handles[statusName] || null;
+}
+
+// Get subfolder property name for a status
+function getSubfolderProperty(statusName) {
+  return `${statusName}Subfolder`;
+}
+
+// Load media from all folders
+async function loadMedia() {
+  allMedia = [];
 
   // Load unsorted media from root
   for await (const entry of rootHandle.values()) {
     if (entry.kind === 'file' && isMediaFile(entry.name)) {
-      allVideos.push({
+      allMedia.push({
         name: entry.name,
         handle: entry,
         status: 'unsorted',
@@ -152,113 +178,80 @@ async function loadVideos() {
     }
   }
 
-  // Load liked media from main liked/ folder
-  for await (const entry of likedHandle.values()) {
-    if (entry.kind === 'file' && isMediaFile(entry.name)) {
-      allVideos.push({
-        name: entry.name,
-        handle: entry,
-        status: 'liked',
-        parentHandle: likedHandle,
-        type: isVideoFile(entry.name) ? 'video' : 'image',
-        likedSubfolder: null
-      });
-    }
-  }
+  // Load media from category folders and their subfolders
+  const categoryFolders = [
+    { handle: likedHandle, status: 'liked' },
+    { handle: dislikedHandle, status: 'disliked' },
+    { handle: superHandle, status: 'super' }
+  ];
 
-  // Load liked media from numbered subfolders (1-9)
-  for (let n = 1; n <= 9; n++) {
-    try {
-      const subfolderHandle = await likedHandle.getDirectoryHandle(String(n));
-      for await (const entry of subfolderHandle.values()) {
-        if (entry.kind === 'file' && isMediaFile(entry.name)) {
-          allVideos.push({
-            name: entry.name,
-            handle: entry,
-            status: 'liked',
-            parentHandle: subfolderHandle,
-            type: isVideoFile(entry.name) ? 'video' : 'image',
-            likedSubfolder: n
-          });
-        }
+  for (const { handle, status } of categoryFolders) {
+    // Load from main folder
+    for await (const entry of handle.values()) {
+      if (entry.kind === 'file' && isMediaFile(entry.name)) {
+        const mediaObj = {
+          name: entry.name,
+          handle: entry,
+          status: status,
+          parentHandle: handle,
+          type: isVideoFile(entry.name) ? 'video' : 'image'
+        };
+        mediaObj[getSubfolderProperty(status)] = null;
+        allMedia.push(mediaObj);
       }
-    } catch (err) {
-      // Subfolder doesn't exist, skip it
     }
-  }
 
-  // Load disliked media
-  for await (const entry of dislikedHandle.values()) {
-    if (entry.kind === 'file' && isMediaFile(entry.name)) {
-      allVideos.push({
-        name: entry.name,
-        handle: entry,
-        status: 'disliked',
-        parentHandle: dislikedHandle,
-        type: isVideoFile(entry.name) ? 'video' : 'image'
-      });
-    }
-  }
-
-  // Load super media from main super/ folder
-  for await (const entry of superHandle.values()) {
-    if (entry.kind === 'file' && isMediaFile(entry.name)) {
-      allVideos.push({
-        name: entry.name,
-        handle: entry,
-        status: 'super',
-        parentHandle: superHandle,
-        type: isVideoFile(entry.name) ? 'video' : 'image',
-        superSubfolder: null
-      });
-    }
-  }
-
-  // Load super media from numbered subfolders (1-9)
-  for (let n = 1; n <= 9; n++) {
-    try {
-      const subfolderHandle = await superHandle.getDirectoryHandle(String(n));
-      for await (const entry of subfolderHandle.values()) {
-        if (entry.kind === 'file' && isMediaFile(entry.name)) {
-          allVideos.push({
-            name: entry.name,
-            handle: entry,
-            status: 'super',
-            parentHandle: subfolderHandle,
-            type: isVideoFile(entry.name) ? 'video' : 'image',
-            superSubfolder: n
-          });
+    // Load from numbered subfolders (1-9)
+    for (let n = 1; n <= MAX_SUBFOLDERS; n++) {
+      try {
+        const subfolderHandle = await handle.getDirectoryHandle(String(n));
+        for await (const entry of subfolderHandle.values()) {
+          if (entry.kind === 'file' && isMediaFile(entry.name)) {
+            const mediaObj = {
+              name: entry.name,
+              handle: entry,
+              status: status,
+              parentHandle: subfolderHandle,
+              type: isVideoFile(entry.name) ? 'video' : 'image'
+            };
+            mediaObj[getSubfolderProperty(status)] = n;
+            allMedia.push(mediaObj);
+          }
         }
+      } catch (err) {
+        // Subfolder doesn't exist, skip it
       }
-    } catch (err) {
-      // Subfolder doesn't exist, skip it
     }
   }
 
   // Sort by name
-  allVideos.sort((a, b) => a.name.localeCompare(b.name));
+  allMedia.sort((a, b) => a.name.localeCompare(b.name));
 
   applyFilters();
 }
 
-// Apply filters
-function applyFilters() {
+// Build filtered list based on current filter settings
+function buildFilteredList() {
   const selectedFilter = document.querySelector('input[name="filter"]:checked').value;
-
-  filteredVideos = allVideos.filter(v => {
-    if (v.status !== selectedFilter) return false;
-    if (mediaTypeFilter === 'video' && v.type !== 'video') return false;
-    if (mediaTypeFilter === 'image' && v.type !== 'image') return false;
+  return allMedia.filter(m => {
+    if (m.status !== selectedFilter) return false;
+    if (mediaTypeFilter === 'video' && m.type !== 'video') return false;
+    if (mediaTypeFilter === 'image' && m.type !== 'image') return false;
     return true;
   });
+}
 
-  if (currentIndex >= filteredVideos.length) {
-    currentIndex = Math.max(0, filteredVideos.length - 1);
+// Apply filters
+function applyFilters() {
+  filteredMedia = buildFilteredList();
+
+  if (currentIndex >= filteredMedia.length) {
+    currentIndex = Math.max(0, filteredMedia.length - 1);
   }
 
   if (gridMode) {
     // Refresh grid session snapshot with new filter results
-    gridSessionMedia = filteredVideos.map(v => ({ ...v, sorted: false }));
+    gridSessionMedia = filteredMedia.map(m => ({ ...m, sorted: false }));
     // Recalculate page index and update grid
     const totalPages = Math.ceil(gridSessionMedia.length / GRID_SIZE);
     if (gridPageIndex >= totalPages) {
@@ -272,16 +265,10 @@ function applyFilters() {
 
 // Apply filters but keep grid state (don't reload grid yet)
 function applyFiltersKeepGrid() {
-  const selectedFilter = document.querySelector('input[name="filter"]:checked').value;
-  filteredVideos = allVideos.filter(v => {
-    if (v.status !== selectedFilter) return false;
-    if (mediaTypeFilter === 'video' && v.type !== 'video') return false;
-    if (mediaTypeFilter === 'image' && v.type !== 'image') return false;
-    return true;
-  });
+  filteredMedia = buildFilteredList();
 
-  if (currentIndex >= filteredVideos.length) {
-    currentIndex = Math.max(0, filteredVideos.length - 1);
+  if (currentIndex >= filteredMedia.length) {
+    currentIndex = Math.max(0, filteredMedia.length - 1);
   }
 }
 
@@ -308,11 +295,16 @@ function clearImageTimer() {
 
 function startImageTimer() {
   clearImageTimer();
-  if (autoScrollMode && filteredVideos[currentIndex]?.type === 'image') {
+  if (autoScrollMode && filteredMedia[currentIndex]?.type === 'image') {
     imageAutoScrollTimer = setTimeout(() => {
-      nextVideo();
+      nextMedia();
     }, getImageDuration());
   }
+}
+
+// Get current playback rate based on speed mode
+function getCurrentPlaybackRate() {
+  return quickPreviewMode ? 2 : (halfSpeedMode ? 0.5 : 1);
 }
 
 // Update media display (single view)
@@ -327,7 +319,7 @@ async function updateDisplay() {
   singleView.classList.remove('hidden');
   gridView.classList.add('hidden');
 
-  if (filteredVideos.length === 0) {
+  if (filteredMedia.length === 0) {
     videoPlayer.src = '';
     imagePlayer.src = '';
     imagePlayer.style.display = 'none';
@@ -335,13 +327,13 @@ async function updateDisplay() {
     counter.textContent = '0 of 0';
     status.textContent = '';
     status.className = 'status';
-    noVideos.classList.remove('hidden');
+    noMediaEl.classList.remove('hidden');
     clearImageTimer();
     return;
   }
 
-  noVideos.classList.add('hidden');
-  const media = filteredVideos[currentIndex];
+  noMediaEl.classList.add('hidden');
+  const media = filteredMedia[currentIndex];
 
   try {
     const file = await media.handle.getFile();
@@ -360,7 +352,7 @@ async function updateDisplay() {
       imagePlayer.src = '';
       videoPlayer.style.display = '';
       videoPlayer.src = url;
-      videoPlayer.playbackRate = quickPreviewMode ? 2 : (halfSpeedMode ? 0.5 : 1);
+      videoPlayer.playbackRate = getCurrentPlaybackRate();
       videoPlayer.play().catch(() => {});
       clearImageTimer();
     } else {
@@ -374,444 +366,256 @@ async function updateDisplay() {
     console.error('Failed to load media:', err);
   }
 
-  counter.textContent = `${currentIndex + 1} of ${filteredVideos.length}`;
+  counter.textContent = `${currentIndex + 1} of ${filteredMedia.length}`;
 
   // Show subfolder in status if applicable
-  if (media.status === 'liked' && media.likedSubfolder) {
-    status.textContent = `liked/${media.likedSubfolder}`;
-  } else if (media.status === 'super' && media.superSubfolder) {
-    status.textContent = `super/${media.superSubfolder}`;
+  const subfolderProp = getSubfolderProperty(media.status);
+  if (media[subfolderProp]) {
+    status.textContent = `${media.status}/${media[subfolderProp]}`;
   } else {
     status.textContent = media.status;
   }
   status.className = `status ${media.status}`;
 }
 
-// Show visual feedback
-function showFeedback(type) {
-  const symbols = { liked: '♥', disliked: '✗', super: '★', unsorted: '⟲', screenshot: '📷' };
+// Render feedback content to an element
+function renderFeedback(element, type, isGrid = false) {
+  const baseClass = isGrid ? 'grid-feedback feedback' : 'feedback';
 
-  // Handle liked subfolders (e.g., 'liked/3')
-  if (type.startsWith('liked/')) {
-    const subfolderNum = type.split('/')[1];
-    feedback.textContent = `♥${subfolderNum}`;
-    feedback.className = 'feedback liked show';
-  } else if (type.startsWith('super/')) {
-    const subfolderNum = type.split('/')[1];
-    feedback.textContent = `★${subfolderNum}`;
-    feedback.className = 'feedback super show';
+  // Handle subfolder types (e.g., 'liked/3', 'super/3')
+  if (type.includes('/')) {
+    const [statusName, subfolderNum] = type.split('/');
+    const symbol = FEEDBACK_SYMBOLS[statusName] || '♥';
+    element.textContent = `${symbol}${subfolderNum}`;
+    element.className = `${baseClass} ${statusName} show`;
   } else {
-    feedback.textContent = symbols[type] || '♥';
-    feedback.className = `feedback ${type} show`;
+    element.textContent = FEEDBACK_SYMBOLS[type] || '♥';
+    element.className = `${baseClass} ${type} show`;
   }
 
   setTimeout(() => {
-    feedback.className = 'feedback';
+    element.className = baseClass;
   }, FEEDBACK_DURATION_MS);
 }
 
+// Show visual feedback (single view)
+function showFeedback(type) {
+  renderFeedback(feedback, type, false);
+}
+
+// Show feedback on grid slot
+function showGridFeedback(slotIndex, type) {
+  const slot = gridSlots[slotIndex];
+  const feedbackEl = slot.querySelector('.grid-feedback');
+  renderFeedback(feedbackEl, type, true);
+}
+
 // Navigate
-function nextVideo() {
+function nextMedia() {
   clearImageTimer();
-  if (filteredVideos.length === 0) return;
-  currentIndex = (currentIndex + 1) % filteredVideos.length;
+  if (filteredMedia.length === 0) return;
+  currentIndex = (currentIndex + 1) % filteredMedia.length;
   updateDisplay();
 }
 
-function prevVideo() {
+function prevMedia() {
   clearImageTimer();
-  if (filteredVideos.length === 0) return;
-  currentIndex = (currentIndex - 1 + filteredVideos.length) % filteredVideos.length;
+  if (filteredMedia.length === 0) return;
+  currentIndex = (currentIndex - 1 + filteredMedia.length) % filteredMedia.length;
   updateDisplay();
 }
 
-// Move video to a target folder
-async function moveVideo(video, targetHandle, newStatus) {
+// Move media to a target folder
+async function moveMediaFile(media, targetHandle, newStatus) {
   try {
     // Get the file
-    const file = await video.handle.getFile();
+    const file = await media.handle.getFile();
 
     // Create new file in target folder
-    const newHandle = await targetHandle.getFileHandle(video.name, { create: true });
+    const newHandle = await targetHandle.getFileHandle(media.name, { create: true });
     const writable = await newHandle.createWritable();
     await writable.write(file);
     await writable.close();
 
     // Delete from original location
-    await video.parentHandle.removeEntry(video.name);
+    await media.parentHandle.removeEntry(media.name);
 
-    // Update video object
-    video.handle = newHandle;
-    video.parentHandle = targetHandle;
-    video.status = newStatus;
+    // Update media object
+    media.handle = newHandle;
+    media.parentHandle = targetHandle;
+    media.status = newStatus;
 
     return true;
   } catch (err) {
-    console.error('Failed to move video:', err);
+    console.error('Failed to move media:', err);
     return false;
   }
 }
 
-// Like current video (or hovered video in grid mode)
-async function likeVideo() {
-  const video = getTargetVideoForAction();
-  if (!video) return;
-  if (video.status === 'liked') return;
+// Clear a grid slot after sorting
+function clearGridSlot(slotIndex) {
+  const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
+  if (gridSessionMedia[snapshotIndex]) {
+    gridSessionMedia[snapshotIndex].sorted = true;
+  }
+  gridMedia[slotIndex] = null;
+  const slot = gridSlots[slotIndex];
+  slot.classList.add('empty');
+  const videoEl = slot.querySelector('.grid-video');
+  const imageEl = slot.querySelector('.grid-image');
+  videoEl.src = '';
+  videoEl.style.display = 'none';
+  imageEl.src = '';
+  imageEl.style.display = 'none';
+  slot.querySelector('.grid-status').textContent = '';
+}
+
+// Generic sort media function - replaces likeMedia, dislikeMedia, superLikeMedia, moveToUnsorted
+async function sortMedia(newStatus) {
+  const media = getTargetMediaForAction();
+  if (!media) return;
+  if (media.status === newStatus) return;
 
   const slotIndex = gridMode ? hoveredSlotIndex : null;
 
-  const previousStatus = video.status;
-  const previousParentHandle = video.parentHandle;
-  const previousSubfolder = video.likedSubfolder || video.superSubfolder;
+  const previousStatus = media.status;
+  const previousParentHandle = media.parentHandle;
+  const previousSubfolder = media.likedSubfolder || media.dislikedSubfolder || media.superSubfolder;
 
+  // Show feedback
   if (gridMode && slotIndex !== null) {
-    showGridFeedback(slotIndex, 'liked');
+    showGridFeedback(slotIndex, newStatus);
   } else {
-    showFeedback('liked');
+    showFeedback(newStatus);
   }
 
-  const success = await moveVideo(video, likedHandle, 'liked');
+  const targetHandle = getHandleForStatus(newStatus);
+  const success = await moveMediaFile(media, targetHandle, newStatus);
 
   if (success) {
-    video.likedSubfolder = null;
-    video.superSubfolder = null;
-    lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
+    // Clear all subfolder properties
+    media.likedSubfolder = null;
+    media.dislikedSubfolder = null;
+    media.superSubfolder = null;
+    lastAction = { media, previousStatus, previousParentHandle, previousSubfolder };
 
     if (gridMode && slotIndex !== null) {
-      // Mark item as sorted in the grid session snapshot
-      const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
-      if (gridSessionMedia[snapshotIndex]) {
-        gridSessionMedia[snapshotIndex].sorted = true;
-      }
-      // Mark slot as sorted (null) in grid mode
-      gridVideos[slotIndex] = null;
-      const slot = gridSlots[slotIndex];
-      slot.classList.add('empty');
-      const videoEl = slot.querySelector('.grid-video');
-      const imageEl = slot.querySelector('.grid-image');
-      videoEl.src = '';
-      videoEl.style.display = 'none';
-      imageEl.src = '';
-      imageEl.style.display = 'none';
-      slot.querySelector('.grid-status').textContent = '';
+      clearGridSlot(slotIndex);
       applyFiltersKeepGrid();
       checkGridAutoAdvance();
     } else {
-      const nextUnsortedIndex = findNextUnsortedIndex();
-      applyFilters();
-      if (nextUnsortedIndex !== -1) {
-        const nextVideo = allVideos[nextUnsortedIndex];
-        currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
-        if (currentIndex === -1) currentIndex = 0;
+      // For unsorted, just refresh display
+      if (newStatus === 'unsorted') {
+        applyFilters();
+        updateDisplay();
+      } else {
+        const nextUnsortedIndex = findNextUnsortedIndex();
+        applyFilters();
+        if (nextUnsortedIndex !== -1) {
+          const nextItem = allMedia[nextUnsortedIndex];
+          currentIndex = filteredMedia.findIndex(m => m.name === nextItem.name);
+          if (currentIndex === -1) currentIndex = 0;
+        }
+        updateDisplay();
       }
-      updateDisplay();
     }
   }
 }
 
-// Dislike current video (or hovered video in grid mode)
-async function dislikeVideo() {
-  const video = getTargetVideoForAction();
-  if (!video) return;
-  if (video.status === 'disliked') return;
+// Convenience functions for sorting
+function likeMedia() { sortMedia('liked'); }
+function dislikeMedia() { sortMedia('disliked'); }
+function superLikeMedia() { sortMedia('super'); }
+function moveToUnsorted() { sortMedia('unsorted'); }
 
-  const slotIndex = gridMode ? hoveredSlotIndex : null;
+// Move media to a numbered subfolder (1-9) or back to parent folder (0)
+// Works for any status that supports subfolders
+async function moveToSubfolder(n) {
+  const media = getTargetMediaForAction();
+  if (!media) return;
 
-  const previousStatus = video.status;
-  const previousParentHandle = video.parentHandle;
-  const previousSubfolder = video.likedSubfolder || video.superSubfolder;
+  const currentStatus = media.status;
+  const subfolderProp = getSubfolderProperty(currentStatus);
+  const parentHandle = getHandleForStatus(currentStatus);
+  const symbol = FEEDBACK_SYMBOLS[currentStatus] || '♥';
 
-  if (gridMode && slotIndex !== null) {
-    showGridFeedback(slotIndex, 'disliked');
-  } else {
-    showFeedback('disliked');
-  }
-
-  const success = await moveVideo(video, dislikedHandle, 'disliked');
-
-  if (success) {
-    video.likedSubfolder = null;
-    video.superSubfolder = null;
-    lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
-
-    if (gridMode && slotIndex !== null) {
-      // Mark item as sorted in the grid session snapshot
-      const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
-      if (gridSessionMedia[snapshotIndex]) {
-        gridSessionMedia[snapshotIndex].sorted = true;
-      }
-      // Mark slot as sorted (null) in grid mode
-      gridVideos[slotIndex] = null;
-      const slot = gridSlots[slotIndex];
-      slot.classList.add('empty');
-      const videoEl = slot.querySelector('.grid-video');
-      const imageEl = slot.querySelector('.grid-image');
-      videoEl.src = '';
-      videoEl.style.display = 'none';
-      imageEl.src = '';
-      imageEl.style.display = 'none';
-      slot.querySelector('.grid-status').textContent = '';
-      applyFiltersKeepGrid();
-      checkGridAutoAdvance();
-    } else {
-      const nextUnsortedIndex = findNextUnsortedIndex();
-      applyFilters();
-      if (nextUnsortedIndex !== -1) {
-        const nextVideo = allVideos[nextUnsortedIndex];
-        currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
-        if (currentIndex === -1) currentIndex = 0;
-      }
-      updateDisplay();
-    }
-  }
-}
-
-// Super like current video (or hovered video in grid mode)
-async function superLikeVideo() {
-  const video = getTargetVideoForAction();
-  if (!video) return;
-  if (video.status === 'super') return;
-
-  const slotIndex = gridMode ? hoveredSlotIndex : null;
-
-  const previousStatus = video.status;
-  const previousParentHandle = video.parentHandle;
-  const previousSubfolder = video.likedSubfolder || video.superSubfolder;
-
-  if (gridMode && slotIndex !== null) {
-    showGridFeedback(slotIndex, 'super');
-  } else {
-    showFeedback('super');
-  }
-
-  const success = await moveVideo(video, superHandle, 'super');
-
-  if (success) {
-    video.likedSubfolder = null;
-    video.superSubfolder = null;
-    lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
-
-    if (gridMode && slotIndex !== null) {
-      // Mark item as sorted in the grid session snapshot
-      const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
-      if (gridSessionMedia[snapshotIndex]) {
-        gridSessionMedia[snapshotIndex].sorted = true;
-      }
-      // Mark slot as sorted (null) in grid mode
-      gridVideos[slotIndex] = null;
-      const slot = gridSlots[slotIndex];
-      slot.classList.add('empty');
-      const videoEl = slot.querySelector('.grid-video');
-      const imageEl = slot.querySelector('.grid-image');
-      videoEl.src = '';
-      videoEl.style.display = 'none';
-      imageEl.src = '';
-      imageEl.style.display = 'none';
-      slot.querySelector('.grid-status').textContent = '';
-      applyFiltersKeepGrid();
-      checkGridAutoAdvance();
-    } else {
-      const nextUnsortedIndex = findNextUnsortedIndex();
-      applyFilters();
-      if (nextUnsortedIndex !== -1) {
-        const nextVideo = allVideos[nextUnsortedIndex];
-        currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
-        if (currentIndex === -1) currentIndex = 0;
-      }
-      updateDisplay();
-    }
-  }
-}
-
-// Move current video back to unsorted (root folder)
-async function moveToUnsorted() {
-  const video = getTargetVideoForAction();
-  if (!video) return;
-  if (video.status === 'unsorted') return;
-
-  const slotIndex = gridMode ? hoveredSlotIndex : null;
-
-  const previousStatus = video.status;
-  const previousParentHandle = video.parentHandle;
-  const previousSubfolder = video.likedSubfolder || video.superSubfolder;
-
-  if (gridMode && slotIndex !== null) {
-    showGridFeedback(slotIndex, 'unsorted');
-  } else {
-    showFeedback('unsorted');
-  }
-
-  const success = await moveVideo(video, rootHandle, 'unsorted');
-
-  if (success) {
-    video.likedSubfolder = null;
-    video.superSubfolder = null;
-    lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
-
-    if (gridMode && slotIndex !== null) {
-      // Mark item as sorted in the grid session snapshot
-      const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
-      if (gridSessionMedia[snapshotIndex]) {
-        gridSessionMedia[snapshotIndex].sorted = true;
-      }
-      // Mark slot as sorted (null) in grid mode
-      gridVideos[slotIndex] = null;
-      const slot = gridSlots[slotIndex];
-      slot.classList.add('empty');
-      const videoEl = slot.querySelector('.grid-video');
-      const imageEl = slot.querySelector('.grid-image');
-      videoEl.src = '';
-      videoEl.style.display = 'none';
-      imageEl.src = '';
-      imageEl.style.display = 'none';
-      slot.querySelector('.grid-status').textContent = '';
-      applyFiltersKeepGrid();
-      checkGridAutoAdvance();
-    } else {
-      applyFilters();
-      updateDisplay();
-    }
-  }
-}
-
-// Move liked video to a numbered subfolder (1-9) or back to parent liked/ (0)
-async function moveToLikedSubfolder(n) {
-  const video = getTargetVideoForAction();
-  if (!video) return;
-
-  // Only works on liked videos
-  if (video.status !== 'liked') return;
+  // Check if this status supports subfolders (unsorted doesn't have a parent category folder)
+  if (currentStatus === 'unsorted') return;
 
   // Prevent no-op moves
-  if (n === 0 && video.likedSubfolder === null) return;
-  if (n > 0 && video.likedSubfolder === n) return;
+  const currentSubfolder = media[subfolderProp];
+  if (n === 0 && currentSubfolder === null) return;
+  if (n > 0 && currentSubfolder === n) return;
 
   const slotIndex = gridMode ? hoveredSlotIndex : null;
 
   // Save state for undo
-  const previousSubfolder = video.likedSubfolder;
-  const previousParentHandle = video.parentHandle;
+  const previousSubfolder = currentSubfolder;
+  const previousParentHandle = media.parentHandle;
 
   // Get target folder handle
   let targetHandle;
   if (n === 0) {
-    targetHandle = likedHandle;
+    targetHandle = parentHandle;
   } else {
     // Create subfolder if needed
-    targetHandle = await likedHandle.getDirectoryHandle(String(n), { create: true });
+    targetHandle = await parentHandle.getDirectoryHandle(String(n), { create: true });
   }
 
   // Show feedback
-  const feedbackType = n === 0 ? 'liked' : `liked/${n}`;
+  const feedbackType = n === 0 ? currentStatus : `${currentStatus}/${n}`;
   if (gridMode && slotIndex !== null) {
     showGridFeedback(slotIndex, feedbackType);
   } else {
     showFeedback(feedbackType);
   }
 
-  // Move the video (status stays 'liked')
-  const success = await moveVideo(video, targetHandle, 'liked');
+  // Move the media (status stays the same)
+  const success = await moveMediaFile(media, targetHandle, currentStatus);
   if (success) {
-    video.likedSubfolder = (n === 0) ? null : n;
-    lastAction = { video, previousStatus: 'liked', previousParentHandle, previousSubfolder };
+    media[subfolderProp] = (n === 0) ? null : n;
+    lastAction = { media, previousStatus: currentStatus, previousParentHandle, previousSubfolder };
 
     if (gridMode && slotIndex !== null) {
       // Update status badge in grid
       const slot = gridSlots[slotIndex];
       const statusEl = slot.querySelector('.grid-status');
       if (n === 0) {
-        statusEl.textContent = '♥';
+        statusEl.textContent = '';
+        statusEl.className = 'grid-status';
       } else {
-        statusEl.textContent = `♥${n}`;
+        statusEl.textContent = `${symbol}${n}`;
+        statusEl.className = `grid-status ${currentStatus}`;
       }
-      statusEl.className = 'grid-status liked';
     } else {
-      nextVideo();
+      nextMedia();
     }
   }
 }
 
-// Move super video to a numbered subfolder (1-9) or back to parent super/ (0)
-async function moveToSuperSubfolder(n) {
-  const video = getTargetVideoForAction();
-  if (!video) return;
-
-  // Only works on super videos
-  if (video.status !== 'super') return;
-
-  // Prevent no-op moves
-  if (n === 0 && video.superSubfolder === null) return;
-  if (n > 0 && video.superSubfolder === n) return;
-
-  const slotIndex = gridMode ? hoveredSlotIndex : null;
-
-  // Save state for undo
-  const previousSubfolder = video.superSubfolder;
-  const previousParentHandle = video.parentHandle;
-
-  // Get target folder handle
-  let targetHandle;
-  if (n === 0) {
-    targetHandle = superHandle;
-  } else {
-    // Create subfolder if needed
-    targetHandle = await superHandle.getDirectoryHandle(String(n), { create: true });
-  }
-
-  // Show feedback
-  const feedbackType = n === 0 ? 'super' : `super/${n}`;
-  if (gridMode && slotIndex !== null) {
-    showGridFeedback(slotIndex, feedbackType);
-  } else {
-    showFeedback(feedbackType);
-  }
-
-  // Move the video (status stays 'super')
-  const success = await moveVideo(video, targetHandle, 'super');
-  if (success) {
-    video.superSubfolder = (n === 0) ? null : n;
-    lastAction = { video, previousStatus: 'super', previousParentHandle, previousSubfolder };
-
-    if (gridMode && slotIndex !== null) {
-      // Update status badge in grid
-      const slot = gridSlots[slotIndex];
-      const statusEl = slot.querySelector('.grid-status');
-      if (n === 0) {
-        statusEl.textContent = '★';
-      } else {
-        statusEl.textContent = `★${n}`;
-      }
-      statusEl.className = 'grid-status super';
-    } else {
-      nextVideo();
-    }
-  }
-}
-
-// Undo - restore last moved video to its previous state and navigate to it
-async function undoVideo() {
+// Undo - restore last moved media to its previous state and navigate to it
+async function undoMedia() {
   if (!lastAction) return;
 
-  const { video, previousStatus, previousParentHandle, previousSubfolder } = lastAction;
-  const videoName = video.name;
+  const { media, previousStatus, previousParentHandle, previousSubfolder } = lastAction;
+  const mediaName = media.name;
 
-  const success = await moveVideo(video, previousParentHandle, previousStatus);
+  const success = await moveMediaFile(media, previousParentHandle, previousStatus);
   if (success) {
-    // Restore subfolder state for liked/super videos
-    if (previousStatus === 'liked') {
-      video.likedSubfolder = previousSubfolder;
-      video.superSubfolder = null;
-    } else if (previousStatus === 'super') {
-      video.superSubfolder = previousSubfolder;
-      video.likedSubfolder = null;
-    } else {
-      video.likedSubfolder = null;
-      video.superSubfolder = null;
+    // Clear all subfolder properties first
+    media.likedSubfolder = null;
+    media.dislikedSubfolder = null;
+    media.superSubfolder = null;
+
+    // Restore subfolder state for the previous status
+    if (previousSubfolder !== null && previousSubfolder !== undefined) {
+      const subfolderProp = getSubfolderProperty(previousStatus);
+      media[subfolderProp] = previousSubfolder;
     }
 
     lastAction = null;
 
-    // Switch to the filter for the previous status so we can see the video
+    // Switch to the filter for the previous status so we can see the media
     const filterRadio = {
       'unsorted': filterUnsorted,
       'liked': filterLiked,
@@ -824,8 +628,8 @@ async function undoVideo() {
 
     applyFilters();
 
-    // Find and switch to the undone video
-    const newIndex = filteredVideos.findIndex(v => v.name === videoName);
+    // Find and switch to the undone media
+    const newIndex = filteredMedia.findIndex(m => m.name === mediaName);
     if (newIndex !== -1) {
       currentIndex = newIndex;
     }
@@ -833,16 +637,16 @@ async function undoVideo() {
   }
 }
 
-// Find next unsorted video index in allVideos
+// Find next unsorted media index in allMedia
 function findNextUnsortedIndex() {
-  const currentName = filteredVideos[currentIndex]?.name;
-  const currentAllIndex = allVideos.findIndex(v => v.name === currentName);
+  const currentName = filteredMedia[currentIndex]?.name;
+  const currentAllIndex = allMedia.findIndex(m => m.name === currentName);
 
-  for (let i = currentAllIndex + 1; i < allVideos.length; i++) {
-    if (allVideos[i].status === 'unsorted') return i;
+  for (let i = currentAllIndex + 1; i < allMedia.length; i++) {
+    if (allMedia[i].status === 'unsorted') return i;
   }
   for (let i = 0; i < currentAllIndex; i++) {
-    if (allVideos[i].status === 'unsorted') return i;
+    if (allMedia[i].status === 'unsorted') return i;
   }
   return -1;
 }
@@ -856,7 +660,7 @@ function toggleGridMode() {
 
   if (gridMode) {
     // Create stable snapshot for this grid session
-    gridSessionMedia = filteredVideos.map(v => ({ ...v, sorted: false }));
+    gridSessionMedia = filteredMedia.map(m => ({ ...m, sorted: false }));
     // Switch to grid view
     singleView.classList.add('hidden');
     gridView.classList.remove('hidden');
@@ -877,16 +681,16 @@ function toggleGridMode() {
 // Update the grid display with 9 media items
 async function updateGridDisplay() {
   // Use gridSessionMedia for stable positions during grid session
-  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredVideos;
+  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredMedia;
 
   if (sourceMedia.length === 0) {
-    noVideos.classList.remove('hidden');
+    noMediaEl.classList.remove('hidden');
     gridView.classList.add('hidden');
     singleView.classList.add('hidden');
     return;
   }
 
-  noVideos.classList.add('hidden');
+  noMediaEl.classList.add('hidden');
   gridView.classList.remove('hidden');
   singleView.classList.add('hidden');
 
@@ -894,7 +698,8 @@ async function updateGridDisplay() {
   cleanupGridBlobUrls();
 
   const startIndex = gridPageIndex * GRID_SIZE;
-  gridVideos = [];
+  gridMedia = [];
+  const playbackRate = getCurrentPlaybackRate();
 
   for (let i = 0; i < GRID_SIZE; i++) {
     const mediaIndex = startIndex + i;
@@ -908,7 +713,7 @@ async function updateGridDisplay() {
 
       // Check if this item has been sorted (render as black tile)
       if (mediaSnapshot.sorted) {
-        gridVideos[i] = null;
+        gridMedia[i] = null;
         slot.classList.add('empty');
         videoEl.src = '';
         videoEl.style.display = 'none';
@@ -919,9 +724,9 @@ async function updateGridDisplay() {
         continue;
       }
 
-      // Find the actual video object in allVideos (it may have been moved)
-      const media = allVideos.find(v => v.name === mediaSnapshot.name) || mediaSnapshot;
-      gridVideos[i] = media;
+      // Find the actual media object in allMedia (it may have been moved)
+      const media = allMedia.find(m => m.name === mediaSnapshot.name) || mediaSnapshot;
+      gridMedia[i] = media;
 
       try {
         const file = await media.handle.getFile();
@@ -933,7 +738,7 @@ async function updateGridDisplay() {
           imageEl.src = '';
           videoEl.style.display = '';
           videoEl.src = url;
-          videoEl.playbackRate = quickPreviewMode ? 2 : (halfSpeedMode ? 0.5 : 1);
+          videoEl.playbackRate = playbackRate;
           videoEl.loop = true;
           videoEl.play().catch(() => {});
         } else {
@@ -946,19 +751,19 @@ async function updateGridDisplay() {
         slot.classList.remove('empty');
 
         // Show status badge only for media with subfolder assigned
-        if (media.status === 'liked' && media.likedSubfolder) {
-          statusEl.textContent = `♥${media.likedSubfolder}`;
-          statusEl.className = 'grid-status liked';
-        } else if (media.status === 'super' && media.superSubfolder) {
-          statusEl.textContent = `★${media.superSubfolder}`;
-          statusEl.className = 'grid-status super';
+        const subfolderProp = getSubfolderProperty(media.status);
+        const subfolder = media[subfolderProp];
+        if (subfolder) {
+          const symbol = FEEDBACK_SYMBOLS[media.status] || '♥';
+          statusEl.textContent = `${symbol}${subfolder}`;
+          statusEl.className = `grid-status ${media.status}`;
         } else {
           statusEl.textContent = '';
           statusEl.className = 'grid-status';
         }
       } catch (err) {
         console.error('Failed to load media for grid:', err);
-        gridVideos[i] = null;
+        gridMedia[i] = null;
         slot.classList.add('empty');
         videoEl.src = '';
         videoEl.style.display = 'none';
@@ -969,7 +774,7 @@ async function updateGridDisplay() {
       }
     } else {
       // Empty slot
-      gridVideos[i] = null;
+      gridMedia[i] = null;
       slot.classList.add('empty');
       videoEl.src = '';
       videoEl.style.display = 'none';
@@ -996,7 +801,7 @@ function cleanupGridBlobUrls() {
 
 // Navigate to next page in grid mode
 function nextGridPage() {
-  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredVideos;
+  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredMedia;
   const totalPages = Math.ceil(sourceMedia.length / GRID_SIZE);
   if (totalPages === 0) return;
   gridPageIndex = (gridPageIndex + 1) % totalPages;
@@ -1005,7 +810,7 @@ function nextGridPage() {
 
 // Navigate to previous page in grid mode
 function prevGridPage() {
-  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredVideos;
+  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredMedia;
   const totalPages = Math.ceil(sourceMedia.length / GRID_SIZE);
   if (totalPages === 0) return;
   gridPageIndex = (gridPageIndex - 1 + totalPages) % totalPages;
@@ -1033,71 +838,59 @@ function initGridClickHandlers() {
   gridSlots.forEach((slot, index) => {
     slot.addEventListener('click', () => {
       if (slot.classList.contains('empty')) return;
-      if (gridVideos[index] === null) return;
+      if (gridMedia[index] === null) return;
 
-      // Find the clicked video's index in filteredVideos by name
-      const clickedVideo = gridVideos[index];
-      const videoIndex = filteredVideos.findIndex(v => v.name === clickedVideo.name);
-      if (videoIndex !== -1) {
-        currentIndex = videoIndex;
+      // Find the clicked media's index in filteredMedia by name
+      const clickedMedia = gridMedia[index];
+      const mediaIndex = filteredMedia.findIndex(m => m.name === clickedMedia.name);
+      if (mediaIndex !== -1) {
+        currentIndex = mediaIndex;
       } else {
         // Fallback: use position-based index
-        currentIndex = Math.min(gridPageIndex * GRID_SIZE + index, filteredVideos.length - 1);
+        currentIndex = Math.min(gridPageIndex * GRID_SIZE + index, filteredMedia.length - 1);
       }
       toggleGridMode(); // Switch back to single view
     });
   });
 }
 
-// Get the target video for sorting actions (grid-aware)
-function getTargetVideoForAction() {
+// Get the target media for sorting actions (grid-aware)
+function getTargetMediaForAction() {
   if (gridMode) {
     if (hoveredSlotIndex === null) return null;
-    return gridVideos[hoveredSlotIndex] || null;
+    return gridMedia[hoveredSlotIndex] || null;
   } else {
-    if (filteredVideos.length === 0) return null;
-    return filteredVideos[currentIndex];
+    if (filteredMedia.length === 0) return null;
+    return filteredMedia[currentIndex];
   }
 }
 
-// Show feedback on grid slot
-function showGridFeedback(slotIndex, type) {
-  const slot = gridSlots[slotIndex];
-  const feedbackEl = slot.querySelector('.grid-feedback');
-  const symbols = { liked: '♥', disliked: '✗', super: '★', unsorted: '⟲' };
-
-  if (type.startsWith('liked/')) {
-    const subfolderNum = type.split('/')[1];
-    feedbackEl.textContent = `♥${subfolderNum}`;
-    feedbackEl.className = 'grid-feedback feedback liked show';
-  } else if (type.startsWith('super/')) {
-    const subfolderNum = type.split('/')[1];
-    feedbackEl.textContent = `★${subfolderNum}`;
-    feedbackEl.className = 'grid-feedback feedback super show';
-  } else {
-    feedbackEl.textContent = symbols[type] || '♥';
-    feedbackEl.className = `grid-feedback feedback ${type} show`;
-  }
-
-  setTimeout(() => {
-    feedbackEl.className = 'grid-feedback feedback';
-  }, FEEDBACK_DURATION_MS);
-}
-
-// Check if all grid videos are sorted (null) and auto-advance
+// Check if all grid media are sorted (null) and auto-advance
 function checkGridAutoAdvance() {
-  const allNull = gridVideos.every(v => v === null);
+  const allNull = gridMedia.every(m => m === null);
   if (allNull) {
-    const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredVideos;
+    const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredMedia;
     const totalPages = Math.ceil(sourceMedia.length / GRID_SIZE);
     if (totalPages > 0) {
       gridPageIndex = (gridPageIndex + 1) % totalPages;
       updateGridDisplay();
     } else {
-      // No videos left
+      // No media left
       updateGridDisplay();
     }
   }
+}
+
+// Update playback rate for all grid videos
+function updateGridPlaybackRate() {
+  if (!gridMode) return;
+  const rate = getCurrentPlaybackRate();
+  const gridVideoEls = document.querySelectorAll('.grid-video');
+  gridVideoEls.forEach(v => {
+    if (v.src) {
+      v.playbackRate = rate;
+    }
+  });
 }
 
 // Initialize grid event listeners
@@ -1151,7 +944,7 @@ document.addEventListener('keydown', (e) => {
       if (gridMode) {
         nextGridPage();
       } else {
-        nextVideo();
+        nextMedia();
       }
       break;
     case 'ArrowLeft':
@@ -1159,25 +952,25 @@ document.addEventListener('keydown', (e) => {
       if (gridMode) {
         prevGridPage();
       } else {
-        prevVideo();
+        prevMedia();
       }
       break;
     case 'ArrowUp':
       e.preventDefault();
-      likeVideo();
+      likeMedia();
       break;
     case "'":
       e.preventDefault();
-      superLikeVideo();
+      superLikeMedia();
       break;
     case 'ArrowDown':
       e.preventDefault();
-      dislikeVideo();
+      dislikeMedia();
       break;
     case 'u':
     case 'U':
       e.preventDefault();
-      undoVideo();
+      undoMedia();
       break;
     case 'm':
     case 'M':
@@ -1214,8 +1007,9 @@ document.addEventListener('keydown', (e) => {
       if (quickPreviewMode) halfSpeedMode = false;
       shortcut2xSpeed.classList.toggle('active', quickPreviewMode);
       shortcutHalfSpeed.classList.toggle('active', halfSpeedMode);
-      videoPlayer.playbackRate = quickPreviewMode ? 2 : (halfSpeedMode ? 0.5 : 1);
-      if (filteredVideos[currentIndex]?.type === 'image') {
+      videoPlayer.playbackRate = getCurrentPlaybackRate();
+      updateGridPlaybackRate();
+      if (filteredMedia[currentIndex]?.type === 'image') {
         startImageTimer();
       }
       break;
@@ -1225,8 +1019,9 @@ document.addEventListener('keydown', (e) => {
       if (halfSpeedMode) quickPreviewMode = false;
       shortcutHalfSpeed.classList.toggle('active', halfSpeedMode);
       shortcut2xSpeed.classList.toggle('active', quickPreviewMode);
-      videoPlayer.playbackRate = halfSpeedMode ? 0.5 : (quickPreviewMode ? 2 : 1);
-      if (filteredVideos[currentIndex]?.type === 'image') {
+      videoPlayer.playbackRate = getCurrentPlaybackRate();
+      updateGridPlaybackRate();
+      if (filteredMedia[currentIndex]?.type === 'image') {
         startImageTimer();
       }
       break;
@@ -1236,7 +1031,7 @@ document.addEventListener('keydown', (e) => {
       autoScrollMode = !autoScrollMode;
       shortcutAutoscroll.classList.toggle('active', autoScrollMode);
       videoPlayer.loop = !autoScrollMode;
-      if (autoScrollMode && filteredVideos[currentIndex]?.type === 'image') {
+      if (autoScrollMode && filteredMedia[currentIndex]?.type === 'image') {
         startImageTimer();
       } else {
         clearImageTimer();
@@ -1300,29 +1095,11 @@ document.addEventListener('keydown', (e) => {
     case '8':
     case '9':
       e.preventDefault();
-      {
-        const video = getTargetVideoForAction();
-        if (video) {
-          if (video.status === 'liked') {
-            moveToLikedSubfolder(parseInt(key));
-          } else if (video.status === 'super') {
-            moveToSuperSubfolder(parseInt(key));
-          }
-        }
-      }
+      moveToSubfolder(parseInt(key, 10));
       break;
     case '0':
       e.preventDefault();
-      {
-        const video = getTargetVideoForAction();
-        if (video) {
-          if (video.status === 'liked') {
-            moveToLikedSubfolder(0);
-          } else if (video.status === 'super') {
-            moveToSuperSubfolder(0);
-          }
-        }
-      }
+      moveToSubfolder(0);
       break;
     case '?':
       e.preventDefault();
@@ -1331,12 +1108,13 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-
-
 // Take screenshot of current video frame
 async function takeScreenshot() {
-  if (filteredVideos.length === 0) return;
-  const video = filteredVideos[currentIndex];
+  if (filteredMedia.length === 0) return;
+  const media = filteredMedia[currentIndex];
+
+  // Only works for videos
+  if (media.type !== 'video') return;
 
   // Create canvas and draw current frame
   const canvas = document.createElement('canvas');
@@ -1349,12 +1127,12 @@ async function takeScreenshot() {
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 
   // Generate filename: video.mp4 -> video_screenshot.png
-  const baseName = video.name.replace(/\.[^.]+$/, '');
+  const baseName = media.name.replace(/\.[^.]+$/, '');
   const screenshotName = `${baseName}_screenshot.png`;
 
   try {
-    // Save to same folder as video
-    const fileHandle = await video.parentHandle.getFileHandle(screenshotName, { create: true });
+    // Save to same folder as media
+    const fileHandle = await media.parentHandle.getFileHandle(screenshotName, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(blob);
     await writable.close();
@@ -1371,9 +1149,9 @@ filterLiked.addEventListener('change', applyFilters);
 filterDisliked.addEventListener('change', applyFilters);
 filterSuper.addEventListener('change', applyFilters);
 
-// Auto-scroll: advance to next video when current ends
+// Auto-scroll: advance to next media when current ends
 videoPlayer.addEventListener('ended', () => {
   if (autoScrollMode) {
-    nextVideo();
+    nextMedia();
   }
 });
