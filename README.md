@@ -30,6 +30,16 @@ Open http://localhost:3000 in your browser.
 - Videos: `.mp4`, `.webm`, `.mov`, `.m4v`
 - Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`
 
+## Workflow
+
+Got a folder full of unsorted videos and images? Here's the idea:
+
+1. **Quick triage** — Flip through your media and sort into three piles: liked, disliked, and super (for the best stuff)
+2. **Refine later** — Use numbered subfolders (1-9) to break down each category however you need
+3. **No lock-in** — Everything stays in plain folders. Move them around, back up, or use other tools anytime
+
+Works great as a simple media browser too — just skip the sorting and flip through your files.
+
 ## Features
 
 - Supports both videos and images in one workflow
