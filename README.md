@@ -2,6 +2,8 @@
 
 A lightweight web app to sort videos and images into categorized folders using keyboard controls.
 
+<img width="1366" height="848" alt="media-sorter" src="https://github.com/user-attachments/assets/f8f5887c-41a6-48af-9e93-bc31bc4b37c8" />
+
 ## Requirements
 
 - Node.js
