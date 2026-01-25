@@ -41,6 +41,7 @@ let gridPageIndex = 0;        // Current page (0-based)
 let hoveredSlotIndex = null;  // Which slot (0-8) mouse is over
 let gridVideos = [];          // Array of video objects for current page (or null for empty/sorted)
 let gridBlobUrls = [];        // For cleanup
+let gridSessionMedia = [];    // Snapshot of filteredVideos for stable grid positions
 const GRID_SIZE = 9;
 
 // DOM elements
@@ -256,8 +257,10 @@ function applyFilters() {
   }
 
   if (gridMode) {
+    // Refresh grid session snapshot with new filter results
+    gridSessionMedia = filteredVideos.map(v => ({ ...v, sorted: false }));
     // Recalculate page index and update grid
-    const totalPages = Math.ceil(filteredVideos.length / GRID_SIZE);
+    const totalPages = Math.ceil(gridSessionMedia.length / GRID_SIZE);
     if (gridPageIndex >= totalPages) {
       gridPageIndex = Math.max(0, totalPages - 1);
     }
@@ -475,12 +478,21 @@ async function likeVideo() {
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
 
     if (gridMode && slotIndex !== null) {
+      // Mark item as sorted in the grid session snapshot
+      const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
+      if (gridSessionMedia[snapshotIndex]) {
+        gridSessionMedia[snapshotIndex].sorted = true;
+      }
       // Mark slot as sorted (null) in grid mode
       gridVideos[slotIndex] = null;
       const slot = gridSlots[slotIndex];
       slot.classList.add('empty');
-      slot.querySelector('.grid-video').src = '';
-      slot.querySelector('.grid-image').src = '';
+      const videoEl = slot.querySelector('.grid-video');
+      const imageEl = slot.querySelector('.grid-image');
+      videoEl.src = '';
+      videoEl.style.display = 'none';
+      imageEl.src = '';
+      imageEl.style.display = 'none';
       slot.querySelector('.grid-status').textContent = '';
       applyFiltersKeepGrid();
       checkGridAutoAdvance();
@@ -523,12 +535,21 @@ async function dislikeVideo() {
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
 
     if (gridMode && slotIndex !== null) {
+      // Mark item as sorted in the grid session snapshot
+      const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
+      if (gridSessionMedia[snapshotIndex]) {
+        gridSessionMedia[snapshotIndex].sorted = true;
+      }
       // Mark slot as sorted (null) in grid mode
       gridVideos[slotIndex] = null;
       const slot = gridSlots[slotIndex];
       slot.classList.add('empty');
-      slot.querySelector('.grid-video').src = '';
-      slot.querySelector('.grid-image').src = '';
+      const videoEl = slot.querySelector('.grid-video');
+      const imageEl = slot.querySelector('.grid-image');
+      videoEl.src = '';
+      videoEl.style.display = 'none';
+      imageEl.src = '';
+      imageEl.style.display = 'none';
       slot.querySelector('.grid-status').textContent = '';
       applyFiltersKeepGrid();
       checkGridAutoAdvance();
@@ -571,12 +592,21 @@ async function superLikeVideo() {
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
 
     if (gridMode && slotIndex !== null) {
+      // Mark item as sorted in the grid session snapshot
+      const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
+      if (gridSessionMedia[snapshotIndex]) {
+        gridSessionMedia[snapshotIndex].sorted = true;
+      }
       // Mark slot as sorted (null) in grid mode
       gridVideos[slotIndex] = null;
       const slot = gridSlots[slotIndex];
       slot.classList.add('empty');
-      slot.querySelector('.grid-video').src = '';
-      slot.querySelector('.grid-image').src = '';
+      const videoEl = slot.querySelector('.grid-video');
+      const imageEl = slot.querySelector('.grid-image');
+      videoEl.src = '';
+      videoEl.style.display = 'none';
+      imageEl.src = '';
+      imageEl.style.display = 'none';
       slot.querySelector('.grid-status').textContent = '';
       applyFiltersKeepGrid();
       checkGridAutoAdvance();
@@ -619,12 +649,21 @@ async function moveToUnsorted() {
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
 
     if (gridMode && slotIndex !== null) {
+      // Mark item as sorted in the grid session snapshot
+      const snapshotIndex = gridPageIndex * GRID_SIZE + slotIndex;
+      if (gridSessionMedia[snapshotIndex]) {
+        gridSessionMedia[snapshotIndex].sorted = true;
+      }
       // Mark slot as sorted (null) in grid mode
       gridVideos[slotIndex] = null;
       const slot = gridSlots[slotIndex];
       slot.classList.add('empty');
-      slot.querySelector('.grid-video').src = '';
-      slot.querySelector('.grid-image').src = '';
+      const videoEl = slot.querySelector('.grid-video');
+      const imageEl = slot.querySelector('.grid-image');
+      videoEl.src = '';
+      videoEl.style.display = 'none';
+      imageEl.src = '';
+      imageEl.style.display = 'none';
       slot.querySelector('.grid-status').textContent = '';
       applyFiltersKeepGrid();
       checkGridAutoAdvance();
@@ -816,6 +855,8 @@ function toggleGridMode() {
   shortcutGrid.classList.toggle('active', gridMode);
 
   if (gridMode) {
+    // Create stable snapshot for this grid session
+    gridSessionMedia = filteredVideos.map(v => ({ ...v, sorted: false }));
     // Switch to grid view
     singleView.classList.add('hidden');
     gridView.classList.remove('hidden');
@@ -823,6 +864,8 @@ function toggleGridMode() {
     gridPageIndex = Math.floor(currentIndex / GRID_SIZE);
     updateGridDisplay();
   } else {
+    // Clear snapshot when exiting (will be recreated fresh next time)
+    gridSessionMedia = [];
     // Switch to single view
     gridView.classList.add('hidden');
     singleView.classList.remove('hidden');
@@ -833,7 +876,10 @@ function toggleGridMode() {
 
 // Update the grid display with 9 media items
 async function updateGridDisplay() {
-  if (filteredVideos.length === 0) {
+  // Use gridSessionMedia for stable positions during grid session
+  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredVideos;
+
+  if (sourceMedia.length === 0) {
     noVideos.classList.remove('hidden');
     gridView.classList.add('hidden');
     singleView.classList.add('hidden');
@@ -857,8 +903,24 @@ async function updateGridDisplay() {
     const imageEl = slot.querySelector('.grid-image');
     const statusEl = slot.querySelector('.grid-status');
 
-    if (mediaIndex < filteredVideos.length) {
-      const media = filteredVideos[mediaIndex];
+    if (mediaIndex < sourceMedia.length) {
+      const mediaSnapshot = sourceMedia[mediaIndex];
+
+      // Check if this item has been sorted (render as black tile)
+      if (mediaSnapshot.sorted) {
+        gridVideos[i] = null;
+        slot.classList.add('empty');
+        videoEl.src = '';
+        videoEl.style.display = 'none';
+        imageEl.src = '';
+        imageEl.style.display = 'none';
+        statusEl.textContent = '';
+        statusEl.className = 'grid-status';
+        continue;
+      }
+
+      // Find the actual video object in allVideos (it may have been moved)
+      const media = allVideos.find(v => v.name === mediaSnapshot.name) || mediaSnapshot;
       gridVideos[i] = media;
 
       try {
@@ -899,7 +961,7 @@ async function updateGridDisplay() {
         gridVideos[i] = null;
         slot.classList.add('empty');
         videoEl.src = '';
-        videoEl.style.display = '';
+        videoEl.style.display = 'none';
         imageEl.src = '';
         imageEl.style.display = 'none';
         statusEl.textContent = '';
@@ -910,7 +972,7 @@ async function updateGridDisplay() {
       gridVideos[i] = null;
       slot.classList.add('empty');
       videoEl.src = '';
-      videoEl.style.display = '';
+      videoEl.style.display = 'none';
       imageEl.src = '';
       imageEl.style.display = 'none';
       statusEl.textContent = '';
@@ -918,10 +980,10 @@ async function updateGridDisplay() {
     }
   }
 
-  // Update counter for grid mode
+  // Update counter for grid mode (use sourceMedia for total count)
   const startNum = startIndex + 1;
-  const endNum = Math.min(startIndex + GRID_SIZE, filteredVideos.length);
-  counter.textContent = `${startNum}-${endNum} of ${filteredVideos.length}`;
+  const endNum = Math.min(startIndex + GRID_SIZE, sourceMedia.length);
+  counter.textContent = `${startNum}-${endNum} of ${sourceMedia.length}`;
 }
 
 // Clean up blob URLs used by grid
@@ -934,7 +996,8 @@ function cleanupGridBlobUrls() {
 
 // Navigate to next page in grid mode
 function nextGridPage() {
-  const totalPages = Math.ceil(filteredVideos.length / GRID_SIZE);
+  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredVideos;
+  const totalPages = Math.ceil(sourceMedia.length / GRID_SIZE);
   if (totalPages === 0) return;
   gridPageIndex = (gridPageIndex + 1) % totalPages;
   updateGridDisplay();
@@ -942,7 +1005,8 @@ function nextGridPage() {
 
 // Navigate to previous page in grid mode
 function prevGridPage() {
-  const totalPages = Math.ceil(filteredVideos.length / GRID_SIZE);
+  const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredVideos;
+  const totalPages = Math.ceil(sourceMedia.length / GRID_SIZE);
   if (totalPages === 0) return;
   gridPageIndex = (gridPageIndex - 1 + totalPages) % totalPages;
   updateGridDisplay();
@@ -971,12 +1035,16 @@ function initGridClickHandlers() {
       if (slot.classList.contains('empty')) return;
       if (gridVideos[index] === null) return;
 
-      // Calculate the actual index in filteredVideos
-      const videoIndex = gridPageIndex * GRID_SIZE + index;
-      if (videoIndex < filteredVideos.length) {
+      // Find the clicked video's index in filteredVideos by name
+      const clickedVideo = gridVideos[index];
+      const videoIndex = filteredVideos.findIndex(v => v.name === clickedVideo.name);
+      if (videoIndex !== -1) {
         currentIndex = videoIndex;
-        toggleGridMode(); // Switch back to single view
+      } else {
+        // Fallback: use position-based index
+        currentIndex = Math.min(gridPageIndex * GRID_SIZE + index, filteredVideos.length - 1);
       }
+      toggleGridMode(); // Switch back to single view
     });
   });
 }
@@ -1020,9 +1088,10 @@ function showGridFeedback(slotIndex, type) {
 function checkGridAutoAdvance() {
   const allNull = gridVideos.every(v => v === null);
   if (allNull) {
-    const totalPages = Math.ceil(filteredVideos.length / GRID_SIZE);
+    const sourceMedia = gridSessionMedia.length > 0 ? gridSessionMedia : filteredVideos;
+    const totalPages = Math.ceil(sourceMedia.length / GRID_SIZE);
     if (totalPages > 0) {
-      gridPageIndex = gridPageIndex % totalPages;
+      gridPageIndex = (gridPageIndex + 1) % totalPages;
       updateGridDisplay();
     } else {
       // No videos left
