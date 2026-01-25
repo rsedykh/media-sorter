@@ -1,6 +1,6 @@
-# Video Sorter
+# Media Sorter
 
-A lightweight web app to sort MP4 videos into categorized folders using keyboard controls.
+A lightweight web app to sort videos and images into categorized folders using keyboard controls.
 
 ## Requirements
 
@@ -21,20 +21,24 @@ node server.js
 
 Open http://localhost:3000 in your browser.
 
-1. Click "Choose Folder" or drag & drop a folder containing MP4 videos
+1. Click "Choose Folder" or drag & drop a folder containing videos or images
 2. The app creates `liked/`, `disliked/`, and `super/` subfolders automatically
-3. Use keyboard controls to sort videos
+3. Use keyboard controls to sort media files
 4. Click the folder name to change folders
+
+**Supported formats:**
+- Videos: `.mp4`, `.webm`, `.mov`, `.m4v`
+- Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`
 
 ## Keyboard Controls
 
 ### Playback
 | Key | Action |
 |-----|--------|
-| `N` | Toggle auto-scroll (auto-advance when video ends) |
+| `N` | Toggle auto-scroll (videos: advance on end; images: advance after 6s) |
 | `M` | Toggle sound on/off |
-| `,` | Toggle 0.5x speed |
-| `.` | Toggle 2x speed (on by default) |
+| `,` | Toggle 0.5x speed (images: 12s display time) |
+| `.` | Toggle 2x speed (on by default; images: 3s display time) |
 | `/` | Toggle pause |
 
 ### Sorting
@@ -66,6 +70,7 @@ Open http://localhost:3000 in your browser.
 | Key | Action |
 |-----|--------|
 | `G` | Toggle 3x3 grid view |
+| `I` | Cycle media type filter (All → Videos → Images) |
 
 In grid view:
 - ←/→ navigate by page (9 videos)
@@ -81,19 +86,21 @@ In grid view:
 
 ## Features
 
+- Supports both videos and images in one workflow
 - Videos autoplay and loop
+- Images display for 6 seconds in auto-scroll (3s at 2x, 12s at 0.5x)
 - Filter by category (unsorted/liked/disliked/super)
-- Sub-sort liked and super videos into numbered subfolders (1-9)
+- Sub-sort liked and super media into numbered subfolders (1-9)
 - Visual feedback when sorting (♥ like, ✗ dislike, ★ super)
-- Auto-advances to next unsorted video after sorting
+- Auto-advances to next unsorted item after sorting
 - Counter showing current position
 - 2x speed mode on by default
 - 0.5x speed mode for slow viewing
 - Auto-scroll mode for hands-free viewing
-- Like/dislike/super work on videos of any status
-- Undo restores video to previous state
+- Like/dislike/super work on media of any status
+- Undo restores media to previous state
 - Screenshot current frame to video's folder
-- 3x3 grid view for browsing multiple videos at once
+- 3x3 grid view for browsing multiple media files at once
 
 ## Browser Support
 

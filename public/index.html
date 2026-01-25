@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Sorter</title>
+  <title>Media Sorter</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,8 +11,8 @@
     <!-- Folder picker screen -->
     <div id="picker-screen" class="picker-screen">
       <div class="picker-content">
-        <h1>Video Sorter</h1>
-        <p>Select a folder containing MP4 videos to sort</p>
+        <h1>Media Sorter</h1>
+        <p>Select a folder containing videos or images to sort</p>
         <button id="pick-folder" class="pick-button">Choose Folder</button>
         <div id="drop-zone" class="drop-zone">
           <span>or drag & drop a folder here</span>
@@ -25,7 +25,7 @@
     <div id="app-screen" class="app-screen hidden">
       <div class="header">
         <div class="header-left">
-          <h1>Video Sorter</h1>
+          <h1>Media Sorter</h1>
           <span id="folder-name" class="folder-name"></span>
         </div>
         <div class="filters">
@@ -37,9 +37,10 @@
       </div>
 
       <div class="video-container">
-        <!-- Single video mode -->
+        <!-- Single media mode -->
         <div id="single-view">
           <video id="video-player" autoplay loop muted playsinline></video>
+          <img id="image-player" style="display: none;" />
           <div id="feedback" class="feedback"></div>
         </div>
 
@@ -47,53 +48,62 @@
         <div id="grid-view" class="hidden">
           <div class="grid-slot" data-slot="0">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
           <div class="grid-slot" data-slot="1">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
           <div class="grid-slot" data-slot="2">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
           <div class="grid-slot" data-slot="3">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
           <div class="grid-slot" data-slot="4">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
           <div class="grid-slot" data-slot="5">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
           <div class="grid-slot" data-slot="6">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
           <div class="grid-slot" data-slot="7">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
           <div class="grid-slot" data-slot="8">
             <video class="grid-video" muted playsinline></video>
+            <img class="grid-image" style="display: none;" />
             <div class="grid-feedback feedback"></div>
             <div class="grid-status"></div>
           </div>
         </div>
 
         <div id="no-videos" class="no-videos hidden">
-          <p>No videos match current filters</p>
+          <p>No media files match current filters</p>
         </div>
       </div>
 
@@ -106,6 +116,7 @@
           <span id="shortcut-2x-speed" class="active"><kbd>.</kbd> 2x speed</span>
           <span id="shortcut-pause"><kbd>/</kbd> Pause</span>
           <span id="shortcut-grid"><kbd>G</kbd> Grid</span>
+          <span id="shortcut-media-type"><kbd>I</kbd> <span class="media-type-label">All</span></span>
         </div>
         <div class="status" id="status"></div>
       </div>
