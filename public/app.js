@@ -16,6 +16,14 @@ let halfSpeedMode = false;
 let autoScrollMode = false;
 let lastAction = null; // { video, previousStatus, previousParentHandle, previousSubfolder }
 
+// Grid mode state
+let gridMode = false;
+let gridPageIndex = 0;        // Current page (0-based)
+let hoveredSlotIndex = null;  // Which slot (0-8) mouse is over
+let gridVideos = [];          // Array of video objects for current page (or null for empty/sorted)
+let gridBlobUrls = [];        // For cleanup
+const GRID_SIZE = 9;
+
 // DOM elements
 const pickerScreen = document.getElementById('picker-screen');
 const appScreen = document.getElementById('app-screen');
@@ -36,6 +44,10 @@ const shortcutSound = document.getElementById('shortcut-sound');
 const shortcutHalfSpeed = document.getElementById('shortcut-half-speed');
 const shortcut2xSpeed = document.getElementById('shortcut-2x-speed');
 const shortcutPause = document.getElementById('shortcut-pause');
+const shortcutGrid = document.getElementById('shortcut-grid');
+const singleView = document.getElementById('single-view');
+const gridView = document.getElementById('grid-view');
+const gridSlots = document.querySelectorAll('.grid-slot');
 
 // Pick folder via button
 pickFolderBtn.addEventListener('click', async () => {
@@ -211,11 +223,40 @@ function applyFilters() {
     currentIndex = Math.max(0, filteredVideos.length - 1);
   }
 
-  updateDisplay();
+  if (gridMode) {
+    // Recalculate page index and update grid
+    const totalPages = Math.ceil(filteredVideos.length / GRID_SIZE);
+    if (gridPageIndex >= totalPages) {
+      gridPageIndex = Math.max(0, totalPages - 1);
+    }
+    updateGridDisplay();
+  } else {
+    updateDisplay();
+  }
 }
 
-// Update video display
+// Apply filters but keep grid state (don't reload grid yet)
+function applyFiltersKeepGrid() {
+  const selectedFilter = document.querySelector('input[name="filter"]:checked').value;
+  filteredVideos = allVideos.filter(v => v.status === selectedFilter);
+
+  if (currentIndex >= filteredVideos.length) {
+    currentIndex = Math.max(0, filteredVideos.length - 1);
+  }
+}
+
+// Update video display (single view)
 async function updateDisplay() {
+  // Ensure we're in single view mode when this is called
+  if (gridMode) {
+    singleView.classList.add('hidden');
+    gridView.classList.remove('hidden');
+    return updateGridDisplay();
+  }
+
+  singleView.classList.remove('hidden');
+  gridView.classList.add('hidden');
+
   if (filteredVideos.length === 0) {
     videoPlayer.src = '';
     counter.textContent = '0 of 0';
@@ -320,116 +361,192 @@ async function moveVideo(video, targetHandle, newStatus) {
   }
 }
 
-// Like current video
+// Like current video (or hovered video in grid mode)
 async function likeVideo() {
-  if (filteredVideos.length === 0) return;
-  const video = filteredVideos[currentIndex];
+  const video = getTargetVideoForAction();
+  if (!video) return;
   if (video.status === 'liked') return;
+
+  const slotIndex = gridMode ? hoveredSlotIndex : null;
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
   const previousSubfolder = video.likedSubfolder || video.superSubfolder;
 
-  showFeedback('liked');
+  if (gridMode && slotIndex !== null) {
+    showGridFeedback(slotIndex, 'liked');
+  } else {
+    showFeedback('liked');
+  }
+
   const success = await moveVideo(video, likedHandle, 'liked');
 
   if (success) {
     video.likedSubfolder = null;
     video.superSubfolder = null;
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
-    const nextUnsortedIndex = findNextUnsortedIndex();
-    applyFilters();
-    if (nextUnsortedIndex !== -1) {
-      const nextVideo = allVideos[nextUnsortedIndex];
-      currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
-      if (currentIndex === -1) currentIndex = 0;
+
+    if (gridMode && slotIndex !== null) {
+      // Mark slot as sorted (null) in grid mode
+      gridVideos[slotIndex] = null;
+      const slot = gridSlots[slotIndex];
+      slot.classList.add('empty');
+      slot.querySelector('.grid-video').src = '';
+      slot.querySelector('.grid-status').textContent = '';
+      applyFiltersKeepGrid();
+      checkGridAutoAdvance();
+    } else {
+      const nextUnsortedIndex = findNextUnsortedIndex();
+      applyFilters();
+      if (nextUnsortedIndex !== -1) {
+        const nextVideo = allVideos[nextUnsortedIndex];
+        currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
+        if (currentIndex === -1) currentIndex = 0;
+      }
+      updateDisplay();
     }
-    updateDisplay();
   }
 }
 
-// Dislike current video
+// Dislike current video (or hovered video in grid mode)
 async function dislikeVideo() {
-  if (filteredVideos.length === 0) return;
-  const video = filteredVideos[currentIndex];
+  const video = getTargetVideoForAction();
+  if (!video) return;
   if (video.status === 'disliked') return;
+
+  const slotIndex = gridMode ? hoveredSlotIndex : null;
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
   const previousSubfolder = video.likedSubfolder || video.superSubfolder;
 
-  showFeedback('disliked');
+  if (gridMode && slotIndex !== null) {
+    showGridFeedback(slotIndex, 'disliked');
+  } else {
+    showFeedback('disliked');
+  }
+
   const success = await moveVideo(video, dislikedHandle, 'disliked');
 
   if (success) {
     video.likedSubfolder = null;
     video.superSubfolder = null;
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
-    const nextUnsortedIndex = findNextUnsortedIndex();
-    applyFilters();
-    if (nextUnsortedIndex !== -1) {
-      const nextVideo = allVideos[nextUnsortedIndex];
-      currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
-      if (currentIndex === -1) currentIndex = 0;
+
+    if (gridMode && slotIndex !== null) {
+      // Mark slot as sorted (null) in grid mode
+      gridVideos[slotIndex] = null;
+      const slot = gridSlots[slotIndex];
+      slot.classList.add('empty');
+      slot.querySelector('.grid-video').src = '';
+      slot.querySelector('.grid-status').textContent = '';
+      applyFiltersKeepGrid();
+      checkGridAutoAdvance();
+    } else {
+      const nextUnsortedIndex = findNextUnsortedIndex();
+      applyFilters();
+      if (nextUnsortedIndex !== -1) {
+        const nextVideo = allVideos[nextUnsortedIndex];
+        currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
+        if (currentIndex === -1) currentIndex = 0;
+      }
+      updateDisplay();
     }
-    updateDisplay();
   }
 }
 
-// Super like current video
+// Super like current video (or hovered video in grid mode)
 async function superLikeVideo() {
-  if (filteredVideos.length === 0) return;
-  const video = filteredVideos[currentIndex];
+  const video = getTargetVideoForAction();
+  if (!video) return;
   if (video.status === 'super') return;
+
+  const slotIndex = gridMode ? hoveredSlotIndex : null;
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
   const previousSubfolder = video.likedSubfolder || video.superSubfolder;
 
-  showFeedback('super');
+  if (gridMode && slotIndex !== null) {
+    showGridFeedback(slotIndex, 'super');
+  } else {
+    showFeedback('super');
+  }
+
   const success = await moveVideo(video, superHandle, 'super');
 
   if (success) {
     video.likedSubfolder = null;
     video.superSubfolder = null;
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
-    const nextUnsortedIndex = findNextUnsortedIndex();
-    applyFilters();
-    if (nextUnsortedIndex !== -1) {
-      const nextVideo = allVideos[nextUnsortedIndex];
-      currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
-      if (currentIndex === -1) currentIndex = 0;
+
+    if (gridMode && slotIndex !== null) {
+      // Mark slot as sorted (null) in grid mode
+      gridVideos[slotIndex] = null;
+      const slot = gridSlots[slotIndex];
+      slot.classList.add('empty');
+      slot.querySelector('.grid-video').src = '';
+      slot.querySelector('.grid-status').textContent = '';
+      applyFiltersKeepGrid();
+      checkGridAutoAdvance();
+    } else {
+      const nextUnsortedIndex = findNextUnsortedIndex();
+      applyFilters();
+      if (nextUnsortedIndex !== -1) {
+        const nextVideo = allVideos[nextUnsortedIndex];
+        currentIndex = filteredVideos.findIndex(v => v.name === nextVideo.name);
+        if (currentIndex === -1) currentIndex = 0;
+      }
+      updateDisplay();
     }
-    updateDisplay();
   }
 }
 
 // Move current video back to unsorted (root folder)
 async function moveToUnsorted() {
-  if (filteredVideos.length === 0) return;
-  const video = filteredVideos[currentIndex];
+  const video = getTargetVideoForAction();
+  if (!video) return;
   if (video.status === 'unsorted') return;
+
+  const slotIndex = gridMode ? hoveredSlotIndex : null;
 
   const previousStatus = video.status;
   const previousParentHandle = video.parentHandle;
   const previousSubfolder = video.likedSubfolder || video.superSubfolder;
 
-  showFeedback('unsorted');
+  if (gridMode && slotIndex !== null) {
+    showGridFeedback(slotIndex, 'unsorted');
+  } else {
+    showFeedback('unsorted');
+  }
+
   const success = await moveVideo(video, rootHandle, 'unsorted');
 
   if (success) {
     video.likedSubfolder = null;
     video.superSubfolder = null;
     lastAction = { video, previousStatus, previousParentHandle, previousSubfolder };
-    applyFilters();
-    updateDisplay();
+
+    if (gridMode && slotIndex !== null) {
+      // Mark slot as sorted (null) in grid mode
+      gridVideos[slotIndex] = null;
+      const slot = gridSlots[slotIndex];
+      slot.classList.add('empty');
+      slot.querySelector('.grid-video').src = '';
+      slot.querySelector('.grid-status').textContent = '';
+      applyFiltersKeepGrid();
+      checkGridAutoAdvance();
+    } else {
+      applyFilters();
+      updateDisplay();
+    }
   }
 }
 
 // Move liked video to a numbered subfolder (1-9) or back to parent liked/ (0)
 async function moveToLikedSubfolder(n) {
-  if (filteredVideos.length === 0) return;
-  const video = filteredVideos[currentIndex];
+  const video = getTargetVideoForAction();
+  if (!video) return;
 
   // Only works on liked videos
   if (video.status !== 'liked') return;
@@ -437,6 +554,8 @@ async function moveToLikedSubfolder(n) {
   // Prevent no-op moves
   if (n === 0 && video.likedSubfolder === null) return;
   if (n > 0 && video.likedSubfolder === n) return;
+
+  const slotIndex = gridMode ? hoveredSlotIndex : null;
 
   // Save state for undo
   const previousSubfolder = video.likedSubfolder;
@@ -452,21 +571,39 @@ async function moveToLikedSubfolder(n) {
   }
 
   // Show feedback
-  showFeedback(n === 0 ? 'liked' : `liked/${n}`);
+  const feedbackType = n === 0 ? 'liked' : `liked/${n}`;
+  if (gridMode && slotIndex !== null) {
+    showGridFeedback(slotIndex, feedbackType);
+  } else {
+    showFeedback(feedbackType);
+  }
 
   // Move the video (status stays 'liked')
   const success = await moveVideo(video, targetHandle, 'liked');
   if (success) {
     video.likedSubfolder = (n === 0) ? null : n;
     lastAction = { video, previousStatus: 'liked', previousParentHandle, previousSubfolder };
-    nextVideo();
+
+    if (gridMode && slotIndex !== null) {
+      // Update status badge in grid
+      const slot = gridSlots[slotIndex];
+      const statusEl = slot.querySelector('.grid-status');
+      if (n === 0) {
+        statusEl.textContent = '♥';
+      } else {
+        statusEl.textContent = `♥${n}`;
+      }
+      statusEl.className = 'grid-status liked';
+    } else {
+      nextVideo();
+    }
   }
 }
 
 // Move super video to a numbered subfolder (1-9) or back to parent super/ (0)
 async function moveToSuperSubfolder(n) {
-  if (filteredVideos.length === 0) return;
-  const video = filteredVideos[currentIndex];
+  const video = getTargetVideoForAction();
+  if (!video) return;
 
   // Only works on super videos
   if (video.status !== 'super') return;
@@ -474,6 +611,8 @@ async function moveToSuperSubfolder(n) {
   // Prevent no-op moves
   if (n === 0 && video.superSubfolder === null) return;
   if (n > 0 && video.superSubfolder === n) return;
+
+  const slotIndex = gridMode ? hoveredSlotIndex : null;
 
   // Save state for undo
   const previousSubfolder = video.superSubfolder;
@@ -489,14 +628,32 @@ async function moveToSuperSubfolder(n) {
   }
 
   // Show feedback
-  showFeedback(n === 0 ? 'super' : `super/${n}`);
+  const feedbackType = n === 0 ? 'super' : `super/${n}`;
+  if (gridMode && slotIndex !== null) {
+    showGridFeedback(slotIndex, feedbackType);
+  } else {
+    showFeedback(feedbackType);
+  }
 
   // Move the video (status stays 'super')
   const success = await moveVideo(video, targetHandle, 'super');
   if (success) {
     video.superSubfolder = (n === 0) ? null : n;
     lastAction = { video, previousStatus: 'super', previousParentHandle, previousSubfolder };
-    nextVideo();
+
+    if (gridMode && slotIndex !== null) {
+      // Update status badge in grid
+      const slot = gridSlots[slotIndex];
+      const statusEl = slot.querySelector('.grid-status');
+      if (n === 0) {
+        statusEl.textContent = '★';
+      } else {
+        statusEl.textContent = `★${n}`;
+      }
+      statusEl.className = 'grid-status super';
+    } else {
+      nextVideo();
+    }
   }
 }
 
@@ -559,6 +716,215 @@ function findNextUnsortedIndex() {
   return -1;
 }
 
+// ========== GRID MODE FUNCTIONS ==========
+
+// Toggle between single and grid view
+function toggleGridMode() {
+  gridMode = !gridMode;
+  shortcutGrid.classList.toggle('active', gridMode);
+
+  if (gridMode) {
+    // Switch to grid view
+    singleView.classList.add('hidden');
+    gridView.classList.remove('hidden');
+    // Calculate which page contains currentIndex
+    gridPageIndex = Math.floor(currentIndex / GRID_SIZE);
+    updateGridDisplay();
+  } else {
+    // Switch to single view
+    gridView.classList.add('hidden');
+    singleView.classList.remove('hidden');
+    cleanupGridBlobUrls();
+    updateDisplay();
+  }
+}
+
+// Update the grid display with 9 videos
+async function updateGridDisplay() {
+  if (filteredVideos.length === 0) {
+    noVideos.classList.remove('hidden');
+    gridView.classList.add('hidden');
+    return;
+  }
+
+  noVideos.classList.add('hidden');
+
+  // Clean up previous blob URLs
+  cleanupGridBlobUrls();
+
+  const startIndex = gridPageIndex * GRID_SIZE;
+  gridVideos = [];
+
+  for (let i = 0; i < GRID_SIZE; i++) {
+    const videoIndex = startIndex + i;
+    const slot = gridSlots[i];
+    const videoEl = slot.querySelector('.grid-video');
+    const statusEl = slot.querySelector('.grid-status');
+
+    if (videoIndex < filteredVideos.length) {
+      const video = filteredVideos[videoIndex];
+      gridVideos[i] = video;
+
+      try {
+        const file = await video.handle.getFile();
+        const url = URL.createObjectURL(file);
+        gridBlobUrls.push(url);
+
+        videoEl.src = url;
+        videoEl.playbackRate = quickPreviewMode ? 2 : (halfSpeedMode ? 0.5 : 1);
+        videoEl.loop = true;
+        videoEl.play().catch(() => {});
+
+        slot.classList.remove('empty');
+
+        // Show status badge only for videos with subfolder assigned
+        if (video.status === 'liked' && video.likedSubfolder) {
+          statusEl.textContent = `♥${video.likedSubfolder}`;
+          statusEl.className = 'grid-status liked';
+        } else if (video.status === 'super' && video.superSubfolder) {
+          statusEl.textContent = `★${video.superSubfolder}`;
+          statusEl.className = 'grid-status super';
+        } else {
+          statusEl.textContent = '';
+          statusEl.className = 'grid-status';
+        }
+      } catch (err) {
+        console.error('Failed to load video for grid:', err);
+        gridVideos[i] = null;
+        slot.classList.add('empty');
+        videoEl.src = '';
+        statusEl.textContent = '';
+        statusEl.className = 'grid-status';
+      }
+    } else {
+      // Empty slot
+      gridVideos[i] = null;
+      slot.classList.add('empty');
+      videoEl.src = '';
+      statusEl.textContent = '';
+      statusEl.className = 'grid-status';
+    }
+  }
+
+  // Update counter for grid mode
+  const startNum = startIndex + 1;
+  const endNum = Math.min(startIndex + GRID_SIZE, filteredVideos.length);
+  counter.textContent = `${startNum}-${endNum} of ${filteredVideos.length}`;
+}
+
+// Clean up blob URLs used by grid
+function cleanupGridBlobUrls() {
+  for (const url of gridBlobUrls) {
+    URL.revokeObjectURL(url);
+  }
+  gridBlobUrls = [];
+}
+
+// Navigate to next page in grid mode
+function nextGridPage() {
+  const totalPages = Math.ceil(filteredVideos.length / GRID_SIZE);
+  if (totalPages === 0) return;
+  gridPageIndex = (gridPageIndex + 1) % totalPages;
+  updateGridDisplay();
+}
+
+// Navigate to previous page in grid mode
+function prevGridPage() {
+  const totalPages = Math.ceil(filteredVideos.length / GRID_SIZE);
+  if (totalPages === 0) return;
+  gridPageIndex = (gridPageIndex - 1 + totalPages) % totalPages;
+  updateGridDisplay();
+}
+
+// Initialize grid hover tracking
+function initGridHoverTracking() {
+  gridSlots.forEach((slot, index) => {
+    slot.addEventListener('mouseenter', () => {
+      if (!slot.classList.contains('empty')) {
+        hoveredSlotIndex = index;
+      }
+    });
+    slot.addEventListener('mouseleave', () => {
+      if (hoveredSlotIndex === index) {
+        hoveredSlotIndex = null;
+      }
+    });
+  });
+}
+
+// Initialize grid click handlers
+function initGridClickHandlers() {
+  gridSlots.forEach((slot, index) => {
+    slot.addEventListener('click', () => {
+      if (slot.classList.contains('empty')) return;
+      if (gridVideos[index] === null) return;
+
+      // Calculate the actual index in filteredVideos
+      const videoIndex = gridPageIndex * GRID_SIZE + index;
+      if (videoIndex < filteredVideos.length) {
+        currentIndex = videoIndex;
+        toggleGridMode(); // Switch back to single view
+      }
+    });
+  });
+}
+
+// Get the target video for sorting actions (grid-aware)
+function getTargetVideoForAction() {
+  if (gridMode) {
+    if (hoveredSlotIndex === null) return null;
+    return gridVideos[hoveredSlotIndex] || null;
+  } else {
+    if (filteredVideos.length === 0) return null;
+    return filteredVideos[currentIndex];
+  }
+}
+
+// Show feedback on grid slot
+function showGridFeedback(slotIndex, type) {
+  const slot = gridSlots[slotIndex];
+  const feedbackEl = slot.querySelector('.grid-feedback');
+  const symbols = { liked: '♥', disliked: '✗', super: '★', unsorted: '⟲' };
+
+  if (type.startsWith('liked/')) {
+    const subfolderNum = type.split('/')[1];
+    feedbackEl.textContent = `♥${subfolderNum}`;
+    feedbackEl.className = 'grid-feedback feedback liked show';
+  } else if (type.startsWith('super/')) {
+    const subfolderNum = type.split('/')[1];
+    feedbackEl.textContent = `★${subfolderNum}`;
+    feedbackEl.className = 'grid-feedback feedback super show';
+  } else {
+    feedbackEl.textContent = symbols[type] || '♥';
+    feedbackEl.className = `grid-feedback feedback ${type} show`;
+  }
+
+  setTimeout(() => {
+    feedbackEl.className = 'grid-feedback feedback';
+  }, FEEDBACK_DURATION_MS);
+}
+
+// Check if all grid videos are sorted (null) and auto-advance
+function checkGridAutoAdvance() {
+  const allNull = gridVideos.every(v => v === null);
+  if (allNull) {
+    const totalPages = Math.ceil(filteredVideos.length / GRID_SIZE);
+    if (totalPages > 0) {
+      gridPageIndex = gridPageIndex % totalPages;
+      updateGridDisplay();
+    } else {
+      // No videos left
+      updateGridDisplay();
+    }
+  }
+}
+
+// Initialize grid event listeners
+initGridHoverTracking();
+initGridClickHandlers();
+
+// ========== END GRID MODE FUNCTIONS ==========
+
 // Change folder (click on folder name)
 folderNameEl.addEventListener('click', async () => {
   try {
@@ -579,11 +945,19 @@ document.addEventListener('keydown', (e) => {
   switch (e.key) {
     case 'ArrowRight':
       e.preventDefault();
-      nextVideo();
+      if (gridMode) {
+        nextGridPage();
+      } else {
+        nextVideo();
+      }
       break;
     case 'ArrowLeft':
       e.preventDefault();
-      prevVideo();
+      if (gridMode) {
+        prevGridPage();
+      } else {
+        prevVideo();
+      }
       break;
     case 'ArrowUp':
       e.preventDefault();
@@ -670,6 +1044,11 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       moveToUnsorted();
       break;
+    case 'g':
+    case 'G':
+      e.preventDefault();
+      toggleGridMode();
+      break;
     case '1':
     case '2':
     case '3':
@@ -680,23 +1059,27 @@ document.addEventListener('keydown', (e) => {
     case '8':
     case '9':
       e.preventDefault();
-      if (filteredVideos.length > 0) {
-        const video = filteredVideos[currentIndex];
-        if (video.status === 'liked') {
-          moveToLikedSubfolder(parseInt(e.key));
-        } else if (video.status === 'super') {
-          moveToSuperSubfolder(parseInt(e.key));
+      {
+        const video = getTargetVideoForAction();
+        if (video) {
+          if (video.status === 'liked') {
+            moveToLikedSubfolder(parseInt(e.key));
+          } else if (video.status === 'super') {
+            moveToSuperSubfolder(parseInt(e.key));
+          }
         }
       }
       break;
     case '0':
       e.preventDefault();
-      if (filteredVideos.length > 0) {
-        const video = filteredVideos[currentIndex];
-        if (video.status === 'liked') {
-          moveToLikedSubfolder(0);
-        } else if (video.status === 'super') {
-          moveToSuperSubfolder(0);
+      {
+        const video = getTargetVideoForAction();
+        if (video) {
+          if (video.status === 'liked') {
+            moveToLikedSubfolder(0);
+          } else if (video.status === 'super') {
+            moveToSuperSubfolder(0);
+          }
         }
       }
       break;

@@ -59,6 +59,16 @@ Video Sorter is a web app for sorting MP4 videos into categorized folders (liked
 | `1-9` | Move liked/super video to subfolder 1-9/ |
 | `0` | Move liked/super video back to parent folder |
 | `?` | Screenshot current frame |
+| `G` | Toggle 3x3 grid view |
+
+## Grid View
+
+Press `G` to toggle a 3x3 grid showing 9 videos at once:
+- **Navigation**: ←/→ move by page (9 videos at a time)
+- **Sorting**: Hover over a video and use ↑/↓/'/J to sort it
+- **Exit**: Click any video to return to single view focused on that video
+- **Counter**: Shows "1-9 of 45" format
+- **Status badges**: Only shown for videos with subfolder assignments
 
 ## Folder Categories
 

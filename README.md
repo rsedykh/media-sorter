@@ -62,6 +62,16 @@ Open http://localhost:3000 in your browser.
 | `1-9` | Move liked/super video to subfolder 1-9/ |
 | `0` | Move liked/super video back to parent folder |
 
+### Grid View
+| Key | Action |
+|-----|--------|
+| `G` | Toggle 3x3 grid view |
+
+In grid view:
+- ←/→ navigate by page (9 videos)
+- Hover over a video and use sorting keys (↑/↓/'/J)
+- Click any video to return to single view
+
 ### Other
 | Key | Action |
 |-----|--------|
@@ -81,6 +91,7 @@ Open http://localhost:3000 in your browser.
 - Like/dislike/super work on videos of any status
 - Undo restores video to previous state
 - Screenshot current frame to video's folder
+- 3x3 grid view for browsing multiple videos at once
 
 ## Browser Support
 

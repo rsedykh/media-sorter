@@ -35,6 +35,7 @@ The Video Sorter app is fully functional. Users can:
 | `1-9` | Move liked/super video to subfolder 1-9/ |
 | `0` | Move liked/super video back to parent folder |
 | `?` | Screenshot current frame (saved to video's folder) |
+| `G` | Toggle 3x3 grid view |
 
 ## Code Structure
 
@@ -50,6 +51,13 @@ let rootHandle, likedHandle, dislikedHandle, superHandle;  // Folder handles
 let allVideos = [];            // All loaded videos with status, likedSubfolder, superSubfolder
 let filteredVideos = [];       // Videos matching current filter (single selection)
 let currentIndex = 0;          // Current video position
+
+// Grid mode
+let gridMode = false;          // Whether grid view is active
+let gridPageIndex = 0;         // Current page in grid (0-based)
+let hoveredSlotIndex = null;   // Which slot (0-8) mouse is over
+let gridVideos = [];           // Array of video objects for current page
+let gridBlobUrls = [];         // For cleanup
 ```
 
 ### Key Functions
@@ -64,6 +72,11 @@ let currentIndex = 0;          // Current video position
 - `moveToSuperSubfolder(n)` - Move super video to subfolder (1-9) or back to super/ (0)
 - `undoVideo()` - Restores last moved video to its previous state (including subfolder)
 - `takeScreenshot()` - Captures current frame and saves as PNG to video's folder
+- `toggleGridMode()` - Switches between single and 3x3 grid view
+- `updateGridDisplay()` - Loads 9 videos into grid slots
+- `nextGridPage()`, `prevGridPage()` - Navigate grid pages
+- `getTargetVideoForAction()` - Returns hovered video (grid) or current video (single)
+- `showGridFeedback(slotIndex, type)` - Shows feedback overlay on grid slot
 
 ### CSS Classes
 
@@ -84,6 +97,8 @@ let currentIndex = 0;          // Current video position
 7. **Active indicators** - Toggle options turn blue when active (no "(ON)" text)
 8. **Change folder** - Click on folder name in header (underlined)
 9. **Screenshot** - Press ? to save current frame as {videoname}_screenshot.png
+10. **Grid view** - Press G to see 9 videos at once; hover to select, click to focus; arrows navigate pages
+11. **Grid status badges** - Only shown for videos with subfolder assignments (not for category alone)
 
 ## UI Layout
 
@@ -121,6 +136,13 @@ let currentIndex = 0;          // Current video position
 - [ ] Sound toggle works
 - [ ] Active toggles highlight in blue
 - [ ] Screenshot saves PNG to video's folder
+- [ ] Grid view toggles with G key
+- [ ] Grid shows 9 videos (or fewer + black slots)
+- [ ] Grid navigation with ←/→ moves by page
+- [ ] Hover highlights slot, sorting keys work on hovered video
+- [ ] Click video in grid returns to single view on that video
+- [ ] Grid counter shows "1-9 of X" format
+- [ ] Grid status badges only show for subfolder assignments
 
 ## Dependencies
 
