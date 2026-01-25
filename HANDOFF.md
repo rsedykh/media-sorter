@@ -148,7 +148,7 @@ let gridSessionMedia = [];     // Snapshot of filteredMedia for stable grid posi
 7. **Active indicators** - Toggle options turn blue when active (no "(ON)" text)
 8. **Change folder** - Click on folder name in header (underlined)
 9. **Screenshot** - Press ? to save current frame as {medianame}_screenshot.png (videos only)
-10. **Grid view** - Press G to see 9 media at once; hover to select, click to focus; arrows navigate pages
+10. **Grid view** - Press G to see 9 media at once; hover to select, click to focus; arrows navigate pages; videos always muted
 11. **Grid status badges** - Only shown for media with subfolder assignments (not for category alone)
 12. **Media types** - Each media object has `type: 'video'` or `type: 'image'` property
 13. **Media type filter** - Press I to cycle through All → Videos only → Images only
@@ -199,6 +199,8 @@ let gridSessionMedia = [];     // Snapshot of filteredMedia for stable grid posi
 - [ ] Click media in grid returns to single view on that media
 - [ ] Grid counter shows "1-9 of X" format
 - [ ] Grid status badges only show for subfolder assignments
+- [ ] Grid videos are always muted
+- [ ] Single view video pauses when entering grid mode
 - [ ] Media type filter cycles with I key (All → Videos → Images)
 - [ ] Media type filter combines with status filter correctly
 
