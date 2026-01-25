@@ -4,6 +4,14 @@ A lightweight web app to sort videos and images into categorized folders using k
 
 <img width="1366" height="848" alt="media-sorter" src="https://github.com/user-attachments/assets/f8f5887c-41a6-48af-9e93-bc31bc4b37c8" />
 
+Got a folder full of unsorted videos and images? Here's the idea:
+
+1. **Quick triage** — Flip through your media and sort into three piles: liked, disliked, and super (for the best stuff)
+2. **Refine later** — Use numbered subfolders (1-9) to break down each category however you need
+3. **No lock-in** — Everything stays in plain folders. Move them around, back up, or use other tools anytime
+
+Works great as a simple media browser too — just skip the sorting and flip through your files.
+
 ## Requirements
 
 - Node.js
@@ -31,16 +39,6 @@ Open http://localhost:3000 in your browser.
 **Supported formats:**
 - Videos: `.mp4`, `.webm`, `.mov`, `.m4v`
 - Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`
-
-## Workflow
-
-Got a folder full of unsorted videos and images? Here's the idea:
-
-1. **Quick triage** — Flip through your media and sort into three piles: liked, disliked, and super (for the best stuff)
-2. **Refine later** — Use numbered subfolders (1-9) to break down each category however you need
-3. **No lock-in** — Everything stays in plain folders. Move them around, back up, or use other tools anytime
-
-Works great as a simple media browser too — just skip the sorting and flip through your files.
 
 ## Features
 
