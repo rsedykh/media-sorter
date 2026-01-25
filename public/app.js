@@ -659,6 +659,8 @@ function toggleGridMode() {
   shortcutGrid.classList.toggle('active', gridMode);
 
   if (gridMode) {
+    // Pause the single view video
+    videoPlayer.pause();
     // Create stable snapshot for this grid session
     gridSessionMedia = filteredMedia.map(m => ({ ...m, sorted: false }));
     // Switch to grid view
@@ -738,6 +740,7 @@ async function updateGridDisplay() {
           imageEl.src = '';
           videoEl.style.display = '';
           videoEl.src = url;
+          videoEl.muted = true;
           videoEl.playbackRate = playbackRate;
           videoEl.loop = true;
           videoEl.play().catch(() => {});
