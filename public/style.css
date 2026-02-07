@@ -8,15 +8,15 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #1a1a1a;
   color: #fff;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .container {
-  max-width: 1280px;
   width: 100%;
+  height: 100%;
   padding: 20px;
 }
 
@@ -84,7 +84,9 @@ body {
 
 /* App Screen */
 .app-screen {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .header {
@@ -135,7 +137,8 @@ h1 {
   background: #000;
   border-radius: 8px;
   overflow: hidden;
-  aspect-ratio: 16/9;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Single view wrapper */
@@ -367,6 +370,10 @@ kbd {
   .status { font-size: 12px; padding: 3px 8px; }
   .feedback { font-size: 48px; }
   .video-container { border-radius: 4px; }
+}
+
+@media (max-height: 640px) {
+  .app-screen > .shortcuts:last-child { display: none; }
 }
 
 @media (max-width: 480px) {
