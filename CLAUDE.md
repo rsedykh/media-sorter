@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Media Sorter is a web app for sorting videos and images into categorized folders (liked, disliked, super) using keyboard shortcuts. It uses the browser's File System Access API for direct folder access.
+Media Sorter is an app for sorting videos and images into categorized folders (liked, disliked, super) using keyboard shortcuts. It uses the browser's File System Access API for direct folder access. Available as a macOS desktop app (Electron) and a web app.
 
 **Supported formats:**
 - Videos: `.mp4`, `.webm`, `.mov`, `.m4v`
@@ -10,9 +10,10 @@ Media Sorter is a web app for sorting videos and images into categorized folders
 
 ## Architecture
 
-- **server.js** - Minimal Express server that only serves static files from `public/`
+- **electron/main.js** - Electron main process, loads `public/index.html` in a maximized window
+- **server.js** - Minimal Express server for web development (serves static files from `public/`)
 - **public/index.html** - Main UI with folder picker and media viewer screens
-- **public/style.css** - Dark theme styling
+- **public/style.css** - Dark theme styling with height-responsive layout
 - **public/app.js** - All application logic using File System Access API
 
 ## Key Technical Details
@@ -33,8 +34,10 @@ Media Sorter is a web app for sorting videos and images into categorized folders
 
 ```
 /
-├── server.js          # Express static file server
-├── package.json       # Dependencies (express only)
+├── electron/
+│   └── main.js        # Electron main process
+├── server.js          # Express static file server (web dev)
+├── package.json       # Dependencies + Electron build config
 ├── README.md          # User documentation
 ├── CLAUDE.md          # This file - project context for AI
 ├── HANDOFF.md         # Detailed state for future development
@@ -89,9 +92,18 @@ Press `G` to toggle a 3x3 grid showing 9 media files at once:
 | disliked/ | ↓ | ✗ | Red |
 | super/ | ' | ★ | Yellow |
 
+## Electron Desktop App
+
+- Electron wraps the web app with zero changes to `public/` code
+- File System Access API works natively in Electron's Chromium renderer
+- Build: `npm run dist` produces a `.dmg` in `dist/`
+- Dev: `npm run electron` launches the app locally
+- Browser compatibility note is auto-hidden in Electron (detects `navigator.userAgent`)
+- App is unsigned — users must right-click → Open on first launch
+
 ## Limitations
 
-- Only works in Chromium browsers (Chrome, Edge, Opera)
+- Web version only works in Chromium browsers (Chrome, Edge, Opera)
 - Safari/Firefox don't support File System Access API
 - User must grant read/write permission when selecting folder
 

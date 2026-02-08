@@ -1,3 +1,8 @@
+// Hide browser compatibility note in Electron
+if (navigator.userAgent.includes('Electron')) {
+  document.getElementById('browser-note')?.remove();
+}
+
 // Constants
 const FEEDBACK_DURATION_MS = 300;
 const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v'];

@@ -1,6 +1,6 @@
 # Media Sorter
 
-A lightweight web app to sort videos and images into categorized folders using keyboard controls.
+A lightweight app to sort videos and images into categorized folders using keyboard controls.
 
 <img width="1366" height="848" alt="media-sorter" src="https://github.com/user-attachments/assets/f8f5887c-41a6-48af-9e93-bc31bc4b37c8" />
 
@@ -12,33 +12,12 @@ Got a folder full of unsorted videos and images? Here's the idea:
 
 Works great as a simple media browser too — just skip the sorting and flip through your files.
 
-## Requirements
-
-- Node.js
-- Chrome, Edge, or Opera (uses File System Access API)
-
-## Installation
-
-```bash
-npm install
-```
-
-## Usage
-
-```bash
-node server.js
-```
-
-Open http://localhost:3000 in your browser.
+## Workflow
 
 1. Click "Choose Folder" or drag & drop a folder containing videos or images
 2. The app creates `liked/`, `disliked/`, and `super/` subfolders automatically
 3. Use keyboard controls to sort media files
 4. Click the folder name to change folders
-
-**Supported formats:**
-- Videos: `.mp4`, `.webm`, `.mov`, `.m4v`
-- Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`
 
 ## Features
 
@@ -57,6 +36,27 @@ Open http://localhost:3000 in your browser.
 - Undo restores media to previous state
 - Screenshot current frame to video's folder
 - 3x3 grid view for browsing multiple media files at once
+
+## Desktop App (macOS)
+
+Download the latest `.dmg` from [Releases](../../releases), open it, and drag Media Sorter to Applications.
+
+On first launch, right-click → Open to bypass Gatekeeper (the app is unsigned).
+
+## Web Version
+
+Requires Node.js and a Chromium browser (Chrome, Edge, or Opera).
+
+```bash
+npm install
+node server.js
+```
+
+Open http://localhost:3000 in your browser.
+
+**Supported formats:**
+- Videos: `.mp4`, `.webm`, `.mov`, `.m4v`
+- Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`
 
 ## Development
 

@@ -155,9 +155,11 @@ let gridSessionMedia = [];     // Snapshot of filteredMedia for stable grid posi
 
 ## UI Layout
 
-- Container max-width: 1280px
+- Container fills full viewport (no max-width cap)
+- App screen uses flex column layout: header → video (flex:1) → controls → shortcuts
+- Video container fills remaining vertical space (no fixed aspect-ratio)
 - First row of shortcuts (toggles) inline with counter and status
-- Second row of shortcuts (actions) below
+- Second row of shortcuts (actions) below, hidden when height < 640px or width < 768px
 - Compact spacing between video and controls
 
 ## Potential Improvements
@@ -206,6 +208,10 @@ let gridSessionMedia = [];     // Snapshot of filteredMedia for stable grid posi
 
 ## Dependencies
 
-- express@^4.18.2 (only for static file serving)
+- express@^4.18.2 (only for static file serving in web mode)
+- electron@^34.0.0 (devDependency - desktop app shell)
+- electron-builder@^25.1.8 (devDependency - builds .dmg)
 
-No build step required. Run with `node server.js`.
+**Web dev:** `node server.js` → http://localhost:3000
+**Electron dev:** `npm run electron`
+**Build .dmg:** `npm run dist` → `dist/Media Sorter-*-arm64.dmg`

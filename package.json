@@ -1,13 +1,30 @@
 {
-  "name": "video-sorter",
-  "version": "1.0.0",
-  "description": "Sort MP4 videos into liked/disliked folders using keyboard controls",
-  "main": "server.js",
+  "name": "media-sorter",
+  "version": "0.1.0",
+  "description": "Sort videos and images into categorized folders using keyboard shortcuts",
+  "main": "electron/main.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "electron": "electron .",
+    "dist": "electron-builder"
   },
   "dependencies": {
     "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.media-sorter.app",
+    "productName": "Media Sorter",
+    "files": [
+      "public/**/*",
+      "electron/**/*"
+    ],
+    "mac": {
+      "target": "dmg"
+    }
   }
 }
 
