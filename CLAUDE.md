@@ -37,6 +37,8 @@ Media Sorter is an app for sorting videos and images into categorized folders (l
 
 ```
 /
+├── build/
+│   └── sign-mac.js    # electron-builder macOS signing hook
 ├── electron/
 │   └── main.js        # Electron main process
 ├── server.js          # Express static file server (web dev)
@@ -102,7 +104,9 @@ Press `G` to toggle a 3x3 grid showing 9 media files at once:
 - Build: `npm run dist` produces a `.dmg` in `dist/`
 - Dev: `npm run electron` launches the app locally
 - Browser compatibility note is auto-hidden in Electron (detects `navigator.userAgent`)
-- App is unsigned — users must right-click → Open on first launch
+- Signed with the self-signed `rsedykh-apps` certificate via `build/sign-mac.js` (electron-builder ignores untrusted certs, so the hook calls `@electron/osx-sign` directly; falls back to ad-hoc signing if the cert isn't in the keychain)
+- Not notarized — users click **Open Anyway** in System Settings → Privacy & Security on first launch
+- Verify a build: `codesign --verify --deep --strict "dist/mac-arm64/Media Sorter.app"`
 
 ## Limitations
 

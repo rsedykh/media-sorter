@@ -221,6 +221,7 @@ Media objects are compared by identity (`indexOf`, `Set`), never by name.
 - express@^4.18.2 (only for static file serving in web mode)
 - electron@^34.0.0 (devDependency - desktop app shell)
 - electron-builder@^25.1.8 (devDependency - builds .dmg)
+- @electron/osx-sign@^1.3.1 (devDependency - used by `build/sign-mac.js` to sign with the self-signed `rsedykh-apps` cert)
 
 **Web dev:** `node server.js` → http://localhost:3000
 **Electron dev:** `npm run electron`

@@ -43,7 +43,7 @@ Works great as a simple media browser too — just skip the sorting and flip thr
 
 Download the latest `.dmg` from [Releases](../../releases), open it, and drag Media Sorter to Applications.
 
-On first launch, right-click → Open to bypass Gatekeeper (the app is unsigned).
+The app isn't notarized by Apple, so macOS blocks the first launch. Try to open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**. (On macOS 14 and earlier, right-click the app → Open also works.)
 
 ## Web Version
 
