@@ -22,13 +22,16 @@ Media Sorter is an app for sorting videos and images into categorized folders (l
 - Uses `showDirectoryPicker()` for folder selection
 - Uses `FileSystemFileHandle` and `FileSystemDirectoryHandle` for file operations
 - Media files are loaded as blob URLs via `URL.createObjectURL()`
-- Moving files = copy to destination + delete from source (no native move in the API)
-- 2x speed mode is on by default (`quickPreviewMode = true`)
-- Undo tracks last action via `lastAction` object
+- Moving files uses native `FileSystemFileHandle.move()` (Chromium 111+, instant rename); falls back to copy + delete if unavailable
+- Moves never overwrite: on a name clash in the target folder the file becomes `name (1).ext`; undo restores the original name
+- 2x speed mode is on by default (`playbackRate = 2`; one of 0.5 / 1 / 2)
+- Undo tracks last action via `lastAction` object (`{ media, status, subfolder, name }` = where it was before)
 - Images in auto-scroll mode display for 6s (3s at 2x, 12s at 0.5x)
-- Each media object has a `type` property: `'video'` or `'image'`
-- Sorting functions consolidated into generic `sortMedia(newStatus)` with convenience wrappers
-- Subfolder support for all category folders (liked, disliked, super) via unified `moveToSubfolder(n)`
+- Each media object: `{ name, handle, parentHandle, status, subfolder, type }` (`subfolder` is 1-9 or null, `type` is `'video'` or `'image'`)
+- Media is compared by object identity, never by name (same filename can exist in several folders)
+- Sorting goes through generic `sortMedia(newStatus)`; subfolders via unified `moveToSubfolder(n)`
+- `render()` dispatches to `renderSingle()` / `renderGrid()`; both discard stale async loads via render IDs
+- Grid slots are cloned from `<template id="grid-slot-template">` (count = `GRID_SIZE`)
 
 ## File Structure
 

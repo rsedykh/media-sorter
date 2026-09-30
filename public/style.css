@@ -148,12 +148,7 @@ h1 {
   position: relative;
 }
 
-#video-player {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
+#video-player,
 #image-player {
   width: 100%;
   height: 100%;
@@ -192,12 +187,7 @@ h1 {
   outline: none;
 }
 
-.grid-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
+.grid-video,
 .grid-image {
   width: 100%;
   height: 100%;

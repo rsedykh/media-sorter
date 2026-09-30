@@ -44,63 +44,8 @@
           <div id="feedback" class="feedback"></div>
         </div>
 
-        <!-- Grid view mode -->
-        <div id="grid-view" class="hidden">
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-          <div class="grid-slot">
-            <video class="grid-video" muted playsinline></video>
-            <img class="grid-image" style="display: none;" />
-            <div class="grid-feedback feedback"></div>
-            <div class="grid-status"></div>
-          </div>
-        </div>
+        <!-- Grid view mode (slots are built from the template below) -->
+        <div id="grid-view" class="hidden"></div>
 
         <div id="no-videos" class="no-videos hidden">
           <p>No media files match current filters</p>
@@ -132,6 +77,15 @@
       </div>
     </div>
   </div>
+
+  <template id="grid-slot-template">
+    <div class="grid-slot">
+      <video class="grid-video" muted loop playsinline></video>
+      <img class="grid-image" style="display: none;" />
+      <div class="grid-feedback feedback"></div>
+      <div class="grid-status"></div>
+    </div>
+  </template>
 
   <script src="app.js"></script>
 </body>

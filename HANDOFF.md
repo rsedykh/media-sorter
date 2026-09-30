@@ -53,81 +53,89 @@ The Media Sorter app is fully functional. Users can:
 const FEEDBACK_DURATION_MS = 300;
 const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
-const IMAGE_BASE_DURATION = 6000;  // 6 seconds for images in auto-scroll
+const IMAGE_BASE_DURATION = 6000;  // 6 seconds for images in auto-scroll at 1x
 const MAX_SUBFOLDERS = 9;
 const GRID_SIZE = 9;
+const CATEGORIES = ['liked', 'disliked', 'super'];
+const STATUSES = ['unsorted', ...CATEGORIES];
 const FEEDBACK_SYMBOLS = { liked: '♥', disliked: '✗', super: '★', unsorted: '⟲', screenshot: '📷' };
 
 // State
-let quickPreviewMode = true;   // 2x speed on by default
-let halfSpeedMode = false;     // 0.5x speed mode
-let autoScrollMode = false;    // Auto-advance when video ends / image timer
-let lastAction = null;         // { media, previousStatus, previousParentHandle, previousSubfolder } for undo
-let rootHandle, likedHandle, dislikedHandle, superHandle;  // Folder handles
-let allMedia = [];             // All loaded media with status, type, and subfolder properties
+let folderHandles = null;      // { unsorted, liked, disliked, super } -> FileSystemDirectoryHandle
+let allMedia = [];             // { name, handle, parentHandle, status, subfolder, type }
 let filteredMedia = [];        // Media matching current filter (single selection)
 let currentIndex = 0;          // Current media position
-let imageAutoScrollTimer = null;  // Timer for image auto-scroll
-let mediaTypeFilter = 'all';      // 'all', 'video', 'image'
+let playbackRate = 2;          // 0.5, 1 or 2 (2x on by default)
+let autoScrollMode = false;    // Auto-advance when video ends / image timer
+let lastAction = null;         // { media, status, subfolder, name } - location before the last move
+let imageAutoScrollTimer = null;
+let mediaTypeFilter = 'all';   // 'all', 'video', 'image'
+let singleBlobUrl = null;      // Blob URL shown in single view
+let singleRenderId = 0;        // Bumped per render; stale async loads are discarded
+const movingMedia = new Set(); // Media with a move in progress (blocks double actions / key repeat)
 
 // Grid mode
-let gridMode = false;          // Whether grid view is active
+let gridMode = false;
 let gridPageIndex = 0;         // Current page in grid (0-based)
 let hoveredSlotIndex = null;   // Which slot (0-8) mouse is over
-let gridMedia = [];            // Array of media objects for current page
-let gridBlobUrls = [];         // For cleanup
 let gridSessionMedia = [];     // Snapshot of filteredMedia for stable grid positions
+const gridSortedMedia = new Set(); // Media sorted during this grid session (black tiles)
+let gridMedia = [];            // Media shown per slot on the current page (null = empty)
+let gridBlobUrls = [];         // For cleanup
+let gridRenderId = 0;
+const gridSlots = [...];       // { el, video, image, feedback, status } built from #grid-slot-template
 ```
+
+Media objects are compared by identity (`indexOf`, `Set`), never by name.
 
 ### Key Functions
 
 **File helpers:**
-- `isVideoFile(filename)`, `isImageFile(filename)`, `isMediaFile(filename)` - File type detection
-- `getHandleForStatus(statusName)` - Returns folder handle for a status
-- `getSubfolderProperty(statusName)` - Returns subfolder property name (e.g., 'likedSubfolder')
+- `getMediaType(filename)` - Returns `'video'`, `'image'` or `null`
+- `isSubfolderName(name)` - True for `"1"`..`"9"`
+- `getAvailableName(dirHandle, name)` - Free name in a folder (`clip.mp4` -> `clip (1).mp4` on clash)
 
 **Initialization:**
-- `initializeFolder(handle)` - Sets up folder handles, creates category subfolders
-- `loadMedia()` - Scans all folders for media files (including numbered subfolders)
+- `pickFolder()` - Folder picker (button and folder name click)
+- `initializeFolder(rootHandle)` - Creates category folders, scans, then swaps in the new folder state (resets undo/index)
+- `scanFolder(dirHandle, status, subfolder)` - One pass over a folder; category folders recurse into numbered subfolders
+- `loadMedia(handles)` - Scans all folders in parallel, returns media sorted by name
 
 **Filtering:**
-- `buildFilteredList()` - Returns filtered list based on current filter settings
-- `applyFilters()` - Updates filteredMedia and refreshes display
-- `applyFiltersKeepGrid()` - Updates filteredMedia without reloading grid
+- `refreshFilteredMedia()` - Rebuilds filteredMedia and clamps currentIndex (no rendering)
+- `applyFilters()` - Refresh + new grid session in grid mode + render
+- `setStatusFilter(status)`, `cycleMediaTypeFilter()`
 
 **Display:**
-- `updateDisplay()` - Loads and plays current media (single view)
-- `updateMediaTypeIndicator()` - Updates the UI indicator for media type filter
-- `getCurrentPlaybackRate()` - Returns playback rate based on speed mode
+- `render()` - Dispatches to `renderSingle()` or `renderGrid()`
+- `renderSingle()` - Loads and plays current media (single view)
+- `showMedia(videoEl, imageEl, type, url)` - Shows a blob URL in a video/image pair
+- `unloadVideo(el)`, `unloadImage(el)`, `unloadSingleView()` - Remove `src` so decoders are released
+- `showFeedback(type)` - Feedback overlay on single view or hovered grid slot (handles `'liked/3'` types)
 
-**Feedback:**
-- `renderFeedback(element, type, isGrid)` - Core feedback rendering (handles subfolders)
-- `showFeedback(type)` - Shows feedback overlay (single view)
-- `showGridFeedback(slotIndex, type)` - Shows feedback overlay on grid slot
-
-**Sorting (consolidated):**
-- `sortMedia(newStatus)` - Generic sort function for all statuses
-- `likeMedia()`, `dislikeMedia()`, `superLikeMedia()`, `moveToUnsorted()` - Convenience wrappers
-- `moveToSubfolder(n)` - Move any categorized media to subfolder (works for liked/disliked/super)
-- `moveMediaFile(media, targetHandle, newStatus)` - Low-level file move operation
+**Sorting:**
+- `sortMedia(newStatus)` - Move to liked/disliked/super/unsorted; single view then shows the next media in the current view
+- `moveToSubfolder(n)` - Move categorized media to subfolder 1-9 (0 = back to category folder)
+- `moveMediaFile(media, status, subfolder, preferredName)` - Native `move()` with copy+delete fallback, never overwrites
+- `undoMedia()` - Moves last media back (original name, subfolder), switches filter and focuses it
+- `getTargetMediaForAction()` - Hovered media (grid) or current media (single)
 
 **Navigation:**
-- `nextMedia()`, `prevMedia()` - Navigate in single view
-- `undoMedia()` - Restores last moved media to its previous state
+- `nextMedia()`, `prevMedia()` (via `stepMedia(delta)`) - Single view
+- `changeGridPage(delta)` - Grid pages
 
 **Grid mode:**
-- `toggleGridMode()` - Switches between single and 3x3 grid view
-- `updateGridDisplay()` - Loads 9 media items into grid slots
-- `nextGridPage()`, `prevGridPage()` - Navigate grid pages
-- `getTargetMediaForAction()` - Returns hovered media (grid) or current media (single)
-- `clearGridSlot(slotIndex)` - Clears a grid slot after sorting
-- `checkGridAutoAdvance()` - Auto-advance when all grid slots are sorted
-- `updateGridPlaybackRate()` - Syncs playback rate to all grid videos
+- `toggleGridMode()` - Switches views; unloads the hidden view's media
+- `startGridSession()` - Snapshots filteredMedia, clears sorted set, clamps page
+- `renderGrid()` - Loads the page's files in parallel into slots
+- `clearGridSlot(slot)`, `updateGridBadge(slot, media)`, `openFromGrid(slotIndex)`
 
-**Other:**
-- `takeScreenshot()` - Captures current frame and saves as PNG (videos only)
-- `getImageDuration()` - Returns image display time based on speed mode
-- `clearImageTimer()`, `startImageTimer()` - Image auto-scroll timer management
+**Playback / other:**
+- `setPlaybackRate(rate)` - Updates single + grid videos, indicators and image timer
+- `toggleSound()`, `togglePause()`, `toggleAutoScroll()`
+- `startImageTimer()`, `clearImageTimer()` - Image auto-scroll (single view only), duration = 6s / playbackRate
+- `takeScreenshot()` - Captures current frame and saves as PNG (single view, videos only)
+- `keyActions` - Key -> action map; `russianToEnglish` maps Cyrillic keys; Cmd/Ctrl combos are ignored
 
 ### CSS Classes
 
@@ -152,6 +160,8 @@ let gridSessionMedia = [];     // Snapshot of filteredMedia for stable grid posi
 11. **Grid status badges** - Only shown for media with subfolder assignments (not for category alone)
 12. **Media types** - Each media object has `type: 'video'` or `type: 'image'` property
 13. **Media type filter** - Press I to cycle through All → Videos only → Images only
+14. **No overwrites** - If the target folder already has a file with the same name, the moved file gets a ` (1)` suffix
+15. **After sorting** - Single view shows the next item of the current view (wraps to the first at the end)
 
 ## UI Layout
 
