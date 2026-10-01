@@ -15,6 +15,8 @@ Media Sorter is an app for sorting videos and images into categorized folders (l
 - **public/index.html** - Main UI with folder picker and media viewer screens
 - **public/style.css** - Dark theme styling with height-responsive layout
 - **public/app.js** - All application logic using File System Access API
+- **site/** - GitHub Pages landing page (static HTML/CSS + `demo.js` for the hero sorting demo)
+- **.github/workflows/pages.yml** - Deploys `site/` to https://rsedykh.github.io/media-sorter/ with `public/` copied to `/app/` (runs on pushes to main touching either folder)
 
 ## Key Technical Details
 
@@ -37,6 +39,8 @@ Media Sorter is an app for sorting videos and images into categorized folders (l
 
 ```
 /
+├── .github/workflows/
+│   └── pages.yml      # GitHub Pages deploy (site/ + public/ at /app/)
 ├── build/
 │   └── sign-mac.js    # electron-builder macOS signing hook
 ├── electron/
@@ -46,10 +50,11 @@ Media Sorter is an app for sorting videos and images into categorized folders (l
 ├── README.md          # User documentation
 ├── CLAUDE.md          # This file - project context for AI
 ├── HANDOFF.md         # Detailed state for future development
-└── public/
-    ├── index.html     # Two-screen UI (picker + player)
-    ├── style.css      # Dark theme with status colors
-    └── app.js         # File System Access API logic
+├── public/
+│   ├── index.html     # Two-screen UI (picker + player)
+│   ├── style.css      # Dark theme with status colors
+│   └── app.js         # File System Access API logic
+└── site/              # Landing page (index.html, style.css, demo.js, img/)
 ```
 
 ## Keyboard Controls

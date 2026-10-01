@@ -2,7 +2,7 @@
 
 A lightweight app to sort videos and images into categorized folders using keyboard controls.
 
-[Download for macOS](../../releases/latest)
+[Download for macOS](../../releases/latest) · [Website](https://rsedykh.github.io/media-sorter/) · [Open in browser](https://rsedykh.github.io/media-sorter/app/)
 
 <img width="1366" height="848" alt="media-sorter" src="https://github.com/user-attachments/assets/f8f5887c-41a6-48af-9e93-bc31bc4b37c8" />
 

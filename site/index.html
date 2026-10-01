@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media Sorter: sort videos and images with your keyboard</title>
+  <meta name="description" content="Flip through a folder of videos and images and sort each one into liked, disliked, or super with a single keystroke. A macOS app that also runs in Chromium browsers. Your files stay in plain folders.">
+  <meta name="theme-color" content="#141414">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Media Sorter">
+  <meta property="og:description" content="Sort a folder of videos and images with three keys. Everything stays in plain folders on your disk.">
+  <meta property="og:url" content="https://rsedykh.github.io/media-sorter/">
+  <meta property="og:image" content="https://rsedykh.github.io/media-sorter/img/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="./">
+        <img src="img/icon.svg" alt="" width="28" height="28">
+        Media Sorter
+      </a>
+      <nav class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#shortcuts">Shortcuts</a>
+        <a href="#get">Download</a>
+        <a href="https://github.com/rsedykh/media-sorter" class="nav-gh">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">For macOS, or in desktop Chrome, Edge &amp; Opera</p>
+          <h1>Sort a folder of media with <span class="nowrap">three keys.</span></h1>
+          <p class="lede">Flip through your videos and images and send each one to <b class="c-liked">liked</b>, <b class="c-disliked">disliked</b>, or <b class="c-super">super</b> with a single keystroke. Everything stays in plain folders on your disk.</p>
+          <div class="cta">
+            <a class="btn btn-primary" href="https://github.com/rsedykh/media-sorter/releases/latest">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M16.37 12.7c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.76 2.27-1.6 2.78-.41 6.9 1.15 9.16.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.66zM14.1 5.94c.63-.77 1.06-1.83.94-2.89-.91.04-2.01.61-2.67 1.37-.58.67-1.09 1.76-.95 2.79 1.01.08 2.05-.51 2.68-1.27z"/></svg>
+              Download for macOS
+            </a>
+            <a class="btn btn-ghost" href="app/">Open in browser <span aria-hidden="true">→</span></a>
+          </div>
+          <p class="cta-note">Apple Silicon .dmg &middot; the browser version needs desktop Chrome, Edge, or Opera</p>
+        </div>
+
+        <div class="demo" id="demo" aria-label="Interactive demo">
+          <div class="demo-window">
+            <div class="demo-bar">
+              <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="demo-title">acoruna</span>
+              <span class="demo-count" id="demo-count">1 of 9</span>
+            </div>
+            <div class="demo-stage" id="demo-stage">
+              <div class="demo-feedback" id="demo-feedback" aria-hidden="true"></div>
+              <div class="demo-done hidden" id="demo-done">
+                <p>All sorted.</p>
+                <span>That&rsquo;s the whole idea.</span>
+                <button class="btn btn-small" id="demo-reset" type="button">Start over</button>
+              </div>
+            </div>
+            <div class="demo-bins">
+              <div class="bin bin-liked" data-bin="liked"><span class="bin-name">liked/</span><span class="bin-n">0</span></div>
+              <div class="bin bin-super" data-bin="super"><span class="bin-name">super/</span><span class="bin-n">0</span></div>
+              <div class="bin bin-disliked" data-bin="disliked"><span class="bin-name">disliked/</span><span class="bin-n">0</span></div>
+            </div>
+          </div>
+          <div class="demo-keys" role="group" aria-label="Try the keys">
+            <button type="button" data-action="liked"><kbd>&uarr;</kbd> Like</button>
+            <button type="button" data-action="super"><kbd>'</kbd> Super</button>
+            <button type="button" data-action="disliked"><kbd>&darr;</kbd> Dislike</button>
+            <button type="button" data-action="undo"><kbd>U</kbd> Undo</button>
+          </div>
+          <p class="demo-hint">Try it: press the keys or tap the buttons</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="wrap">
+        <h2>Triage first. Refine later.</h2>
+        <p class="section-lede">Point it at any folder. It creates three subfolders and gets out of the way.</p>
+        <div class="how">
+          <ol class="steps">
+            <li>
+              <h3>Quick triage</h3>
+              <p>Flip through everything and sort into three piles: liked, disliked, and super for the best stuff. Videos autoplay at 2x, and each keypress moves the file and jumps to the next unsorted one.</p>
+            </li>
+            <li>
+              <h3>Refine later</h3>
+              <p>Switch to a category and press <kbd>1</kbd>&ndash;<kbd>9</kbd> to break it down into numbered subfolders, however you want to group things. <kbd>0</kbd> moves a file back up.</p>
+            </li>
+            <li>
+              <h3>No lock-in</h3>
+              <p>There&rsquo;s no library and no database, just folders. Move them around, back them up, or open them in any other tool.</p>
+            </li>
+          </ol>
+          <pre class="tree" aria-label="Example folder after sorting"><span class="t-dir">my-trip/</span>
+├── IMG_0412.jpg        <span class="t-dim"># still unsorted</span>
+├── <span class="t-liked">liked/</span>
+│   ├── <span class="t-liked">1/</span>
+│   │   └── beach.mp4
+│   └── <span class="t-liked">2/</span>
+│       └── lighthouse.jpg
+├── <span class="t-super">super/</span>
+│   └── sunset.mov
+└── <span class="t-disliked">disliked/</span>
+    └── blurry.jpg</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-shot">
+      <div class="wrap">
+        <h2>Nine at a time</h2>
+        <p class="section-lede">Press <kbd>G</kbd> for a 3&times;3 grid. Hover any tile and sort it right there, or click it to open it full size.</p>
+        <figure class="shot">
+          <img src="img/screenshot.webp" width="1600" height="993" alt="Media Sorter in grid view showing nine landscape photos, with the category filters along the top and keyboard shortcuts along the bottom" loading="lazy">
+        </figure>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <h2>Small, fast, and careful with your files</h2>
+        <div class="features">
+          <div class="feature">
+            <h3>Videos and images together</h3>
+            <p>MP4, WebM, MOV, M4V, JPG, PNG, GIF, WebP, and BMP in one pass. Press <kbd>I</kbd> to show only one type.</p>
+          </div>
+          <div class="feature">
+            <h3>Playback speed</h3>
+            <p>Videos play at 2x by default. Switch to 1x or 0.5x, pause, or turn the sound on whenever you need to.</p>
+          </div>
+          <div class="feature">
+            <h3>Auto-scroll</h3>
+            <p>Press <kbd>N</kbd> and let it play hands-free. Images stay up for 6 seconds at normal speed, 3 at 2x.</p>
+          </div>
+          <div class="feature">
+            <h3>Undo</h3>
+            <p><kbd>U</kbd> puts the last file back where it was, under its original name.</p>
+          </div>
+          <div class="feature">
+            <h3>Never overwrites</h3>
+            <p>If a file with the same name is already in the target folder, yours is saved as <code>name (1).ext</code> instead.</p>
+          </div>
+          <div class="feature">
+            <h3>Frame grabs</h3>
+            <p><kbd>?</kbd> saves the current video frame as a PNG next to the video.</p>
+          </div>
+          <div class="feature">
+            <h3>Re-sort anything</h3>
+            <p>Like, dislike, and super work on any file, sorted or not, so you can change your mind later. <kbd>J</kbd> moves a file back to unsorted.</p>
+          </div>
+          <div class="feature">
+            <h3>Stays on your computer</h3>
+            <p>Files are read and moved locally through the browser&rsquo;s File System Access API. Nothing is uploaded.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="shortcuts">
+      <div class="wrap">
+        <h2>Keyboard shortcuts</h2>
+        <p class="section-lede">Letter shortcuts also work on a Russian keyboard layout.</p>
+        <div class="keys">
+          <div class="key-group">
+            <h3>Sort</h3>
+            <dl>
+              <div><dt><kbd>&uarr;</kbd></dt><dd>Like</dd></div>
+              <div><dt><kbd>&darr;</kbd></dt><dd>Dislike</dd></div>
+              <div><dt><kbd>'</kbd></dt><dd>Super like</dd></div>
+              <div><dt><kbd>J</kbd></dt><dd>Move back to unsorted</dd></div>
+              <div><dt><kbd>1</kbd>&ndash;<kbd>9</kbd></dt><dd>Move to a numbered subfolder</dd></div>
+              <div><dt><kbd>0</kbd></dt><dd>Move back to the category folder</dd></div>
+              <div><dt><kbd>U</kbd></dt><dd>Undo</dd></div>
+            </dl>
+          </div>
+          <div class="key-group">
+            <h3>Browse</h3>
+            <dl>
+              <div><dt><kbd>&larr;</kbd> <kbd>&rarr;</kbd></dt><dd>Previous / next</dd></div>
+              <div><dt><kbd>A</kbd></dt><dd>Show unsorted</dd></div>
+              <div><dt><kbd>S</kbd></dt><dd>Show liked</dd></div>
+              <div><dt><kbd>D</kbd></dt><dd>Show disliked</dd></div>
+              <div><dt><kbd>F</kbd></dt><dd>Show super</dd></div>
+              <div><dt><kbd>I</kbd></dt><dd>All / videos / images</dd></div>
+              <div><dt><kbd>G</kbd></dt><dd>3&times;3 grid</dd></div>
+            </dl>
+          </div>
+          <div class="key-group">
+            <h3>Playback</h3>
+            <dl>
+              <div><dt><kbd>/</kbd></dt><dd>Pause</dd></div>
+              <div><dt><kbd>N</kbd></dt><dd>Auto-scroll</dd></div>
+              <div><dt><kbd>M</kbd></dt><dd>Sound</dd></div>
+              <div><dt><kbd>.</kbd></dt><dd>2x speed</dd></div>
+              <div><dt><kbd>,</kbd></dt><dd>0.5x speed</dd></div>
+              <div><dt><kbd>?</kbd></dt><dd>Save video frame</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="get">
+      <div class="wrap">
+        <h2>Get Media Sorter</h2>
+        <div class="get">
+          <div class="get-card">
+            <h3>macOS app</h3>
+            <p>Download the <code>.dmg</code>, open it, and drag Media Sorter to Applications.</p>
+            <a class="btn btn-primary" href="https://github.com/rsedykh/media-sorter/releases/latest">Download for macOS</a>
+            <details>
+              <summary>macOS says it can&rsquo;t open the app</summary>
+              <p>The app isn&rsquo;t notarized by Apple, so macOS blocks the first launch. Try to open it once, then go to <b>System Settings &rarr; Privacy &amp; Security</b> and click <b>Open Anyway</b>. On macOS 14 and earlier, you can also right-click the app and choose <b>Open</b>.</p>
+            </details>
+          </div>
+          <div class="get-card">
+            <h3>In your browser</h3>
+            <p>Nothing to install. Works in desktop Chrome, Edge, and Opera. Safari, Firefox, and mobile browsers don&rsquo;t support the File System Access API.</p>
+            <a class="btn btn-ghost" href="app/">Open in browser <span aria-hidden="true">→</span></a>
+            <details>
+              <summary>Run it locally instead</summary>
+              <p>You&rsquo;ll need Node.js:</p>
+              <pre><code>git clone https://github.com/rsedykh/media-sorter
+cd media-sorter
+npm install
+node server.js</code></pre>
+              <p>Then open <code>http://localhost:3000</code>.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>Media Sorter</span>
+      <nav>
+        <a href="https://github.com/rsedykh/media-sorter">GitHub</a>
+        <a href="https://github.com/rsedykh/media-sorter/releases">Releases</a>
+        <a href="https://github.com/rsedykh/media-sorter/issues">Issues</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="demo.js"></script>
+</body>
+</html>
